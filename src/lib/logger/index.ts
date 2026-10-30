@@ -24,3 +24,4 @@ export const logger = isServer
     });
 
 export default logger;
+

@@ -1,19 +1,31 @@
 import { createClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || "";
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() || "";
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  if (typeof window !== "undefined") {
-    // Client-side info
-    logger.info("Supabase client initialized with mock/placeholder credentials. Connect Supabase in .env.local to persist remotely.");
-  }
+export const isSupabaseConfigured = Boolean(
+  supabaseUrl &&
+    supabaseAnonKey &&
+    supabaseUrl !== "https://your-project-id.supabase.co" &&
+    supabaseAnonKey !== "your-supabase-anon-key"
+);
+
+if (!isSupabaseConfigured && typeof window !== "undefined") {
+  logger.info(
+    "Supabase credentials not configured in NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY. Please provide them in .env.local for permanent database storage."
+  );
 }
 
 export const supabase = createClient(
-  supabaseUrl || "https://placeholder-project.supabase.co",
-  supabaseAnonKey || "placeholder-anon-key"
+  isSupabaseConfigured ? supabaseUrl : "https://placeholder-project.supabase.co",
+  isSupabaseConfigured ? supabaseAnonKey : "placeholder-anon-key",
+  {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  }
 );
 
 export function getBrowserSupabase() {

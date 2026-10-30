@@ -23,3 +23,4 @@ export function formatTime(timeString?: string): string {
   if (!timeString) return "";
   return timeString;
 }
+

@@ -49,7 +49,7 @@ export default function TasksPage() {
     return matchesSearch && matchesStatus && matchesPriority;
   });
 
-  const handleCreateSubmit = (e: React.FormEvent) => {
+  const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
       setFormError("Task title is required");
@@ -58,7 +58,7 @@ export default function TasksPage() {
 
     const linkedMeeting = meetings.find((m) => m.id === meetingId);
 
-    addTask({
+    await addTask({
       title: title.trim(),
       description: description.trim() || undefined,
       owner: owner.trim() || settings.userName,
@@ -187,11 +187,10 @@ export default function TasksPage() {
                             isDone ? "pending" : "completed"
                           )
                         }
-                        className={`p-1 rounded-md transition-colors ${
-                          isDone
+                        className={`p-1 rounded-md transition-colors ${isDone
                             ? "text-emerald-600 bg-emerald-50 hover:bg-emerald-100"
                             : "text-slate-400 hover:text-slate-700 hover:bg-slate-100"
-                        }`}
+                          }`}
                         title={isDone ? "Mark as Pending" : "Mark as Completed"}
                       >
                         <CheckCircle2 className={`h-4 w-4 ${isDone ? "fill-emerald-600 text-white" : ""}`} />
@@ -202,9 +201,8 @@ export default function TasksPage() {
                     <TableCell>
                       <div className="space-y-0.5">
                         <span
-                          className={`text-xs font-semibold text-slate-900 ${
-                            isDone ? "line-through text-slate-400" : ""
-                          }`}
+                          className={`text-xs font-semibold text-slate-900 ${isDone ? "line-through text-slate-400" : ""
+                            }`}
                         >
                           {task.title}
                         </span>
@@ -233,10 +231,10 @@ export default function TasksPage() {
                           task.priority === "urgent"
                             ? "danger"
                             : task.priority === "high"
-                            ? "warning"
-                            : task.priority === "medium"
-                            ? "default"
-                            : "secondary"
+                              ? "warning"
+                              : task.priority === "medium"
+                                ? "default"
+                                : "secondary"
                         }
                       >
                         {task.priority}
@@ -246,9 +244,8 @@ export default function TasksPage() {
                     {/* Due Date */}
                     <TableCell>
                       <span
-                        className={`text-xs font-medium ${
-                          isOverdue ? "text-rose-600 font-bold" : "text-slate-600"
-                        }`}
+                        className={`text-xs font-medium ${isOverdue ? "text-rose-600 font-bold" : "text-slate-600"
+                          }`}
                       >
                         {formatDate(task.dueDate)}
                       </span>
@@ -439,13 +436,13 @@ export default function TasksPage() {
                 {(historyTask.history && historyTask.history.length > 0
                   ? historyTask.history
                   : [
-                      {
-                        id: "h-init",
-                        timestamp: historyTask.createdAt,
-                        action: "Task created and assigned",
-                        performedBy: historyTask.owner,
-                      },
-                    ]
+                    {
+                      id: "h-init",
+                      timestamp: historyTask.createdAt,
+                      action: "Task created and assigned",
+                      performedBy: historyTask.owner,
+                    },
+                  ]
                 ).map((evt) => (
                   <div key={evt.id} className="relative">
                     <span className="absolute -left-6 top-1 h-2.5 w-2.5 rounded-full border-2 border-white bg-sky-500 shadow-xs" />

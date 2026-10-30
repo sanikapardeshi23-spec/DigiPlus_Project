@@ -42,7 +42,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
   const [tDesc, setTDesc] = useState("");
   const [tFormError, setTFormError] = useState("");
 
-  const handleCreateMeeting = (e: React.FormEvent) => {
+  const handleCreateMeeting = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!mTitle.trim()) {
       setMFormError("Meeting title is required");
@@ -62,7 +62,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
         email: `${name.toLowerCase().replace(/\s+/g, ".")}@digiplus.internal`,
       }));
 
-    addMeeting({
+    await addMeeting({
       title: mTitle.trim(),
       date: mDate,
       time: mTime,
@@ -80,14 +80,14 @@ export function Navbar({ onMenuClick }: NavbarProps) {
     setMeetingDialogOpen(false);
   };
 
-  const handleCreateTask = (e: React.FormEvent) => {
+  const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!tTitle.trim()) {
       setTFormError("Task title is required");
       return;
     }
 
-    addTask({
+    await addTask({
       title: tTitle.trim(),
       description: tDesc.trim() || undefined,
       owner: tOwner.trim() || settings.userName,

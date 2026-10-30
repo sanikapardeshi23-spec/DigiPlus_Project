@@ -17,7 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { useWorkspace } from "@/lib/store/workspace-context";
 
 export default function SettingsPage() {
-  const { settings, updateSettings } = useWorkspace();
+  const { settings, updateSettings, isDbConnected } = useWorkspace();
 
   const [workspaceName, setWorkspaceName] = useState(settings.workspaceName);
   const [userName, setUserName] = useState(settings.userName);
@@ -223,17 +223,21 @@ export default function SettingsPage() {
               <div className="p-3 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-between">
                 <div>
                   <p className="font-semibold text-slate-800">Supabase PostgreSQL</p>
-                  <p className="text-[11px] text-slate-500 mt-0.5">Database & Storage</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    {isDbConnected ? "Remote tables synced" : "Pending .env.local configuration"}
+                  </p>
                 </div>
-                <Badge variant="teal">Configured</Badge>
+                <Badge variant={isDbConnected ? "success" : "warning"}>
+                  {isDbConnected ? "Connected" : "Local Mode"}
+                </Badge>
               </div>
 
               <div className="p-3 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-between">
                 <div>
                   <p className="font-semibold text-slate-800">Anthropic Claude API</p>
-                  <p className="text-[11px] text-slate-500 mt-0.5">AI Engine & Summarizer</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Endpoint: /api/ai/meeting-notes</p>
                 </div>
-                <Badge variant="success">Active</Badge>
+                <Badge variant="teal">Integrated</Badge>
               </div>
             </div>
           </CardContent>

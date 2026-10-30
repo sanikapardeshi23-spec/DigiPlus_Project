@@ -28,3 +28,14 @@ This document records key decisions made to maximize development speed, maintain
 - **Context**: The existing remote repository `https://github.com/sanikapardeshi23-spec/DigiPlus_Project.git` must not be force-overwritten.
 - **Decision**: Initialized local git on `main` branch with remote origin set, verified `.gitignore` to protect `.env*` files, and staged changes cleanly without premature forced pushes.
 - **Impact**: Complies with requirement 9 while preserving repository safety.
+
+
+### Decision 6: Two-Phase Confirmation for AI Outputs
+- **Context**: LLM outputs should never be automatically or silently committed to the database without human-in-the-loop verification.
+- **Decision**: In the meeting creation workflow, clicking "Generate AI Recap" populates editable fields (summary textarea, dynamic decision inputs, structured action item inputs). The user can edit, correct, or add entries before clicking "Save Meeting to Database".
+- **Impact**: Eliminates erroneous AI records in the database, preserves user raw notes even if AI fails, and supports fully manual meeting entry.
+
+### Decision 7: Foreign Key Cascades & Status Integrity in Supabase
+- **Context**: Action items and decisions belong to meetings, but action items might outlive a meeting or be standalone tasks.
+- **Decision**: Configured `decisions.meeting_id` with `ON DELETE CASCADE` and `action_items.meeting_id` with `ON DELETE SET NULL`. Added status and priority check constraints matching domain enums.
+- **Impact**: Prevents orphaned decisions while preserving task history even if a meeting record is adjusted.

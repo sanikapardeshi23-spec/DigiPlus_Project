@@ -174,3 +174,4 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
     </>
   );
 }
+

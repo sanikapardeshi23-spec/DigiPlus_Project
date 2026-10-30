@@ -1,201 +1,27 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useTransition } from "react";
-import { Meeting, Task, KnowledgeDocument, WorkspaceSettings, DashboardStats } from "@/types";
-
-const INITIAL_MEETINGS: Meeting[] = [
-  {
-    id: "m-1",
-    title: "Q4 Product Strategy & AI Roadmap Alignment",
-    date: "2026-11-02",
-    time: "10:00 AM",
-    durationMinutes: 60,
-    location: "Conference Room A / Zoom",
-    status: "completed",
-    participants: [
-      { name: "Alex Morgan", email: "alex@digiplus.internal", role: "Product Lead" },
-      { name: "Sara Chen", email: "sara@digiplus.internal", role: "Tech Lead" },
-      { name: "Marcus Vance", email: "marcus@digiplus.internal", role: "UX Designer" },
-    ],
-    agenda: "1. Review Q3 metrics.\n2. Finalize AI catch-up brief feature scope.\n3. Agree on Claude 3.5 Sonnet integration timeline.",
-    notes: "Discussed AI capabilities. Team agreed to use Anthropic Claude for extracting action items and generating catch-up briefs. Sara noted need for fallback if API timeout occurs. Marcus will deliver mockups by Wednesday.",
-    aiSummary: "The team agreed to integrate Claude 3.5 Sonnet for meeting notes summarization and automated task extraction. UX mockups are due mid-week, with engineering prioritizing database models.",
-    decisions: [
-      "Adopt Anthropic Claude 3.5 Sonnet for workspace intelligence.",
-      "Carry over pending sprint tasks automatically into subsequent syncs.",
-    ],
-    actionItems: [
-      "Prepare detailed Claude API prompt templates (Sara Chen)",
-      "Deliver high-fidelity catch-up brief layouts (Marcus Vance)",
-    ],
-    pendingTasks: ["Confirm Supabase PostgreSQL connection pool settings"],
-    createdAt: "2026-10-28T09:00:00Z",
-    updatedAt: "2026-10-28T11:00:00Z",
-  },
-  {
-    id: "m-2",
-    title: "DigiPlus Sprint 12 Planning & Backlog Grooming",
-    date: "2026-11-04",
-    time: "02:30 PM",
-    durationMinutes: 45,
-    location: "Google Meet",
-    status: "scheduled",
-    participants: [
-      { name: "Sara Chen", email: "sara@digiplus.internal", role: "Tech Lead" },
-      { name: "David Kim", email: "david@digiplus.internal", role: "Full Stack Eng" },
-      { name: "Alex Morgan", email: "alex@digiplus.internal", role: "Product Lead" },
-    ],
-    agenda: "1. Velocity review from Sprint 11.\n2. Story point estimation for task history.\n3. Sprint commitments.",
-    notes: "Review carry-over tasks from previous retrospective and ensure task owners are assigned.",
-    createdAt: "2026-10-29T14:00:00Z",
-    updatedAt: "2026-10-29T14:00:00Z",
-  },
-  {
-    id: "m-3",
-    title: "Client Feedback Synthesis & Knowledge Base Audit",
-    date: "2026-11-06",
-    time: "11:00 AM",
-    durationMinutes: 30,
-    location: "Huddle Space B",
-    status: "scheduled",
-    participants: [
-      { name: "Alex Morgan", email: "alex@digiplus.internal", role: "Product Lead" },
-      { name: "Elena Rostova", email: "elena@digiplus.internal", role: "Customer Success" },
-    ],
-    agenda: "Review customer onboarding friction points and document resolutions in Knowledge Base.",
-    notes: "Prepare documentation regarding meeting notes parsing and search functionality.",
-    createdAt: "2026-10-30T08:00:00Z",
-    updatedAt: "2026-10-30T08:00:00Z",
-  },
-];
-
-const INITIAL_TASKS: Task[] = [
-  {
-    id: "t-1",
-    title: "Finalize Claude API prompt template for note extraction",
-    description: "Write structured system prompt returning clean JSON with summary, decisions, and action items.",
-    owner: "Sara Chen",
-    ownerEmail: "sara@digiplus.internal",
-    dueDate: "2026-11-03",
-    priority: "high",
-    status: "in_progress",
-    meetingId: "m-1",
-    meetingTitle: "Q4 Product Strategy & AI Roadmap Alignment",
-    carriedOver: false,
-    createdAt: "2026-10-28T11:00:00Z",
-    updatedAt: "2026-10-29T09:30:00Z",
-    history: [
-      { id: "h-1", timestamp: "2026-10-28T11:00:00Z", action: "Task created from Meeting m-1", performedBy: "AI Assistant" },
-      { id: "h-2", timestamp: "2026-10-29T09:30:00Z", action: "Status changed to in_progress", performedBy: "Sara Chen" },
-    ],
-  },
-  {
-    id: "t-2",
-    title: "Implement automatic task carry-over for scheduled meetings",
-    description: "Ensure incomplete tasks from prior meetings automatically list in upcoming meeting agendas.",
-    owner: "David Kim",
-    ownerEmail: "david@digiplus.internal",
-    dueDate: "2026-11-05",
-    priority: "urgent",
-    status: "pending",
-    meetingId: "m-2",
-    meetingTitle: "DigiPlus Sprint 12 Planning & Backlog Grooming",
-    carriedOver: true,
-    createdAt: "2026-10-27T10:00:00Z",
-    updatedAt: "2026-10-27T10:00:00Z",
-    history: [
-      { id: "h-3", timestamp: "2026-10-27T10:00:00Z", action: "Task created", performedBy: "Alex Morgan" },
-      { id: "h-4", timestamp: "2026-10-29T14:15:00Z", action: "Carried over into Sprint 12 meeting", performedBy: "System" },
-    ],
-  },
-  {
-    id: "t-3",
-    title: "Design interactive catch-up brief modal and export actions",
-    description: "Create accessible dialog allowing users to generate and review AI catch-up summaries.",
-    owner: "Marcus Vance",
-    ownerEmail: "marcus@digiplus.internal",
-    dueDate: "2026-11-01",
-    priority: "medium",
-    status: "completed",
-    meetingId: "m-1",
-    meetingTitle: "Q4 Product Strategy & AI Roadmap Alignment",
-    carriedOver: false,
-    createdAt: "2026-10-26T15:00:00Z",
-    updatedAt: "2026-10-30T10:00:00Z",
-    history: [
-      { id: "h-5", timestamp: "2026-10-26T15:00:00Z", action: "Task created", performedBy: "Marcus Vance" },
-      { id: "h-6", timestamp: "2026-10-30T10:00:00Z", action: "Status marked as completed", performedBy: "Marcus Vance" },
-    ],
-  },
-  {
-    id: "t-4",
-    title: "Review Supabase PostgreSQL migrations & RLS policies",
-    description: "Ensure table schemas for meetings, tasks, and knowledge docs have proper constraints and indexes.",
-    owner: "Sara Chen",
-    ownerEmail: "sara@digiplus.internal",
-    dueDate: "2026-10-28",
-    priority: "high",
-    status: "overdue",
-    carriedOver: false,
-    createdAt: "2026-10-24T12:00:00Z",
-    updatedAt: "2026-10-29T18:00:00Z",
-    history: [
-      { id: "h-7", timestamp: "2026-10-24T12:00:00Z", action: "Task created", performedBy: "Sara Chen" },
-      { id: "h-8", timestamp: "2026-10-29T00:01:00Z", action: "Marked overdue by system scheduler", performedBy: "System" },
-    ],
-  },
-  {
-    id: "t-5",
-    title: "Draft user onboarding guide for meeting knowledge search",
-    description: "Document full-text search operators and tagging system for the knowledge base.",
-    owner: "Elena Rostova",
-    ownerEmail: "elena@digiplus.internal",
-    dueDate: "2026-11-08",
-    priority: "low",
-    status: "pending",
-    meetingId: "m-3",
-    meetingTitle: "Client Feedback Synthesis & Knowledge Base Audit",
-    carriedOver: false,
-    createdAt: "2026-10-30T08:30:00Z",
-    updatedAt: "2026-10-30T08:30:00Z",
-    history: [
-      { id: "h-9", timestamp: "2026-10-30T08:30:00Z", action: "Task created", performedBy: "Alex Morgan" },
-    ],
-  },
-];
-
-const INITIAL_DOCS: KnowledgeDocument[] = [
-  {
-    id: "doc-1",
-    title: "DigiPlus Architecture & Coding Standards",
-    category: "Engineering",
-    tags: ["architecture", "nextjs", "supabase", "standards"],
-    content: "All features in DigiPlus follow Next.js App Router patterns with strict TypeScript and server-side secret handling. Reusable components reside in src/components/ui. Validation schemas are managed using Zod, and structured application logs are formatted with Pino.",
-    author: "Sara Chen",
-    createdAt: "2026-10-25T10:00:00Z",
-    updatedAt: "2026-10-28T14:20:00Z",
-  },
-  {
-    id: "doc-2",
-    title: "AI Note Structuring & Catch-Up Protocol",
-    category: "AI & Intelligence",
-    tags: ["claude", "summaries", "catch-up", "meetings"],
-    content: "When meeting notes are recorded, Claude 3.5 Sonnet analyzes unstructured discussions into: 1. Executive Summary; 2. Concrete Decisions; 3. Action Items with owners and due dates; 4. Open Questions. Any incomplete action items are automatically preserved in the task history and flagged for carry-over into upcoming syncs.",
-    author: "Alex Morgan",
-    createdAt: "2026-10-27T16:00:00Z",
-    updatedAt: "2026-10-29T11:00:00Z",
-  },
-  {
-    id: "doc-3",
-    title: "Task Lifecycle & Carry-Over SLA",
-    category: "Product Ops",
-    tags: ["tasks", "sla", "workflows", "operations"],
-    content: "Tasks progress through: Pending -> In Progress -> Completed. If the due date passes before completion, the status automatically switches to Overdue. Carried-over tasks maintain an immutable audit trail showing origin meeting and carry-over dates.",
-    author: "Marcus Vance",
-    createdAt: "2026-10-29T09:15:00Z",
-    updatedAt: "2026-10-29T09:15:00Z",
-  },
-];
+import {
+  Meeting,
+  Task,
+  KnowledgeDocument,
+  WorkspaceSettings,
+  DashboardStats,
+  Priority,
+  TaskStatus,
+} from "@/types";
+import {
+  isSupabaseConfigured,
+  fetchMeetingsFromDb,
+  saveMeetingToDb,
+  fetchActionItemsFromDb,
+  updateActionItemStatusInDb,
+  createActionItemInDb,
+  fetchKnowledgeDocumentsFromDb,
+  saveKnowledgeDocumentToDb,
+  fetchDashboardStatsFromDb,
+} from "@/lib/supabase/db";
+import { logger } from "@/lib/logger";
 
 const INITIAL_SETTINGS: WorkspaceSettings = {
   workspaceName: "DigiPlus Core Workspace",
@@ -207,51 +33,7 @@ const INITIAL_SETTINGS: WorkspaceSettings = {
   emailNotifications: true,
 };
 
-function generateTimestampId(prefix: string): string {
-  return `${prefix}-${Math.random().toString(36).substring(2, 9)}`;
-}
-
-function getInitialIsoDate(): string {
-  return "2026-10-30T12:00:00Z";
-}
-
-const STORAGE_KEY = "digiplus_workspace_v1";
-
-function readInitialStorage(): {
-  meetings: Meeting[];
-  tasks: Task[];
-  knowledgeDocs: KnowledgeDocument[];
-  settings: WorkspaceSettings;
-} {
-  if (typeof window === "undefined") {
-    return {
-      meetings: INITIAL_MEETINGS,
-      tasks: INITIAL_TASKS,
-      knowledgeDocs: INITIAL_DOCS,
-      settings: INITIAL_SETTINGS,
-    };
-  }
-  try {
-    const item = window.localStorage.getItem(STORAGE_KEY);
-    if (item) {
-      const parsed = JSON.parse(item);
-      return {
-        meetings: parsed.meetings || INITIAL_MEETINGS,
-        tasks: parsed.tasks || INITIAL_TASKS,
-        knowledgeDocs: parsed.knowledgeDocs || INITIAL_DOCS,
-        settings: parsed.settings || INITIAL_SETTINGS,
-      };
-    }
-  } catch {
-    // fallback
-  }
-  return {
-    meetings: INITIAL_MEETINGS,
-    tasks: INITIAL_TASKS,
-    knowledgeDocs: INITIAL_DOCS,
-    settings: INITIAL_SETTINGS,
-  };
-}
+const STORAGE_KEY = "digiplus_workspace_v2";
 
 interface WorkspaceContextType {
   meetings: Meeting[];
@@ -259,13 +41,34 @@ interface WorkspaceContextType {
   knowledgeDocs: KnowledgeDocument[];
   settings: WorkspaceSettings;
   stats: DashboardStats;
-  addMeeting: (meeting: Omit<Meeting, "id" | "createdAt" | "updatedAt">) => Meeting;
+  isDbConnected: boolean;
+  isLoadingDb: boolean;
+  dbError: string | null;
+  refreshData: () => Promise<void>;
+  addMeeting: (meeting: Omit<Meeting, "id" | "createdAt" | "updatedAt">) => Promise<Meeting>;
+  saveMeetingWithAiRecap: (params: {
+    title: string;
+    meetingDate?: string;
+    agenda: string;
+    participants: string;
+    rawNotes: string;
+    summary: string;
+    decisions: string[];
+    actionItems: Array<{
+      title: string;
+      description?: string | null;
+      owner_name?: string | null;
+      due_date?: string | null;
+      priority: Priority;
+      status: TaskStatus;
+    }>;
+  }) => Promise<string>;
   updateMeeting: (id: string, updates: Partial<Meeting>) => void;
   deleteMeeting: (id: string) => void;
-  addTask: (task: Omit<Task, "id" | "createdAt" | "updatedAt" | "history">) => Task;
-  updateTask: (id: string, updates: Partial<Task>) => void;
+  addTask: (task: Omit<Task, "id" | "createdAt" | "updatedAt" | "history">) => Promise<Task>;
+  updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
   deleteTask: (id: string) => void;
-  addKnowledgeDoc: (doc: Omit<KnowledgeDocument, "id" | "createdAt" | "updatedAt">) => KnowledgeDocument;
+  addKnowledgeDoc: (doc: Omit<KnowledgeDocument, "id" | "createdAt" | "updatedAt">) => Promise<KnowledgeDocument>;
   updateKnowledgeDoc: (id: string, updates: Partial<KnowledgeDocument>) => void;
   deleteKnowledgeDoc: (id: string) => void;
   updateSettings: (newSettings: Partial<WorkspaceSettings>) => void;
@@ -274,84 +77,322 @@ interface WorkspaceContextType {
 
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
 
+function generateId(prefix: string): string {
+  return `${prefix}-${Math.random().toString(36).substring(2, 9)}`;
+}
+
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
-  const [data, setData] = useState(readInitialStorage);
+  const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [knowledgeDocs, setKnowledgeDocs] = useState<KnowledgeDocument[]>([]);
+  const [settings, setSettings] = useState<WorkspaceSettings>(INITIAL_SETTINGS);
+  const [stats, setStats] = useState<DashboardStats>({
+    totalMeetings: 0,
+    totalTasks: 0,
+    pendingTasks: 0,
+    completedTasks: 0,
+    overdueTasks: 0,
+    upcomingMeetingsCount: 0,
+  });
+  const [isLoadingDb, setIsLoadingDb] = useState(true);
+  const [dbError, setDbError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
-  const { meetings, tasks, knowledgeDocs, settings } = data;
+  // Load from Supabase (or fallback storage if credentials not provided)
+  const refreshData = async () => {
+    if (isSupabaseConfigured) {
+      try {
+        const [dbMeetings, dbTasks, dbDocs, dbStats] = await Promise.all([
+          fetchMeetingsFromDb(),
+          fetchActionItemsFromDb(),
+          fetchKnowledgeDocumentsFromDb(),
+          fetchDashboardStatsFromDb(),
+        ]);
 
-  // Persist to local storage on changes
-  useEffect(() => {
+        startTransition(() => {
+          setMeetings(dbMeetings);
+          setTasks(dbTasks);
+          setKnowledgeDocs(dbDocs);
+          setIsLoadingDb(false);
+          setDbError(null);
+          if (dbStats) {
+            setStats(dbStats);
+          } else {
+            // Compute from arrays
+            setStats({
+              totalMeetings: dbMeetings.length,
+              totalTasks: dbTasks.length,
+              pendingTasks: dbTasks.filter((t) => t.status === "pending" || t.status === "in_progress").length,
+              completedTasks: dbTasks.filter((t) => t.status === "completed").length,
+              overdueTasks: dbTasks.filter((t) => t.status === "overdue").length,
+              upcomingMeetingsCount: dbMeetings.filter((m) => m.status === "scheduled").length,
+            });
+          }
+        });
+        logger.info("Loaded real data from Supabase PostgreSQL database");
+      } catch (err: unknown) {
+        const e = err as Error;
+        logger.error({ err }, "Could not load data from Supabase");
+        startTransition(() => {
+          setDbError(e.message || "Failed to connect to Supabase");
+          setIsLoadingDb(false);
+        });
+        loadFallbackStorage();
+      }
+    } else {
+      loadFallbackStorage();
+      startTransition(() => {
+        setIsLoadingDb(false);
+      });
+    }
+  };
+
+  const loadFallbackStorage = () => {
     try {
-      window.localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({ meetings, tasks, knowledgeDocs, settings })
-      );
+      const stored = window.localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        startTransition(() => {
+          if (parsed.meetings) setMeetings(parsed.meetings);
+          if (parsed.tasks) setTasks(parsed.tasks);
+          if (parsed.knowledgeDocs) setKnowledgeDocs(parsed.knowledgeDocs);
+          if (parsed.settings) setSettings(parsed.settings);
+          computeStats(parsed.meetings || [], parsed.tasks || []);
+        });
+      }
     } catch {
-      // Ignore quota errors
+      // Empty fallback
+    }
+  };
+
+  const computeStats = (mList: Meeting[], tList: Task[]) => {
+    setStats({
+      totalMeetings: mList.length,
+      totalTasks: tList.length,
+      pendingTasks: tList.filter((t) => t.status === "pending" || t.status === "in_progress").length,
+      completedTasks: tList.filter((t) => t.status === "completed").length,
+      overdueTasks: tList.filter((t) => t.status === "overdue").length,
+      upcomingMeetingsCount: mList.filter((m) => m.status === "scheduled").length,
+    });
+  };
+
+  useEffect(() => {
+    let ignore = false;
+    const run = async () => {
+      if (!ignore) {
+        await refreshData();
+      }
+    };
+    run();
+    return () => {
+      ignore = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Sync to local storage as client backup
+  useEffect(() => {
+    if (meetings.length > 0 || tasks.length > 0) {
+      try {
+        window.localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({ meetings, tasks, knowledgeDocs, settings })
+        );
+      } catch {
+        // storage quota
+      }
     }
   }, [meetings, tasks, knowledgeDocs, settings]);
 
-  const stats: DashboardStats = {
-    totalMeetings: meetings.length,
-    totalTasks: tasks.length,
-    pendingTasks: tasks.filter((t) => t.status === "pending" || t.status === "in_progress").length,
-    completedTasks: tasks.filter((t) => t.status === "completed").length,
-    overdueTasks: tasks.filter((t) => t.status === "overdue").length,
-    upcomingMeetingsCount: meetings.filter((m) => m.status === "scheduled").length,
-  };
+  // Recalculate stats whenever meetings or tasks change
+  useEffect(() => {
+    computeStats(meetings, tasks);
+  }, [meetings, tasks]);
 
-  const addMeeting = (meetingData: Omit<Meeting, "id" | "createdAt" | "updatedAt">): Meeting => {
-    const nowIso = getInitialIsoDate();
+  // Save full meeting with AI recap to Supabase
+  const saveMeetingWithAiRecap = async (params: {
+    title: string;
+    meetingDate?: string;
+    agenda: string;
+    participants: string;
+    rawNotes: string;
+    summary: string;
+    decisions: string[];
+    actionItems: Array<{
+      title: string;
+      description?: string | null;
+      owner_name?: string | null;
+      due_date?: string | null;
+      priority: Priority;
+      status: TaskStatus;
+    }>;
+  }): Promise<string> => {
+    let meetingId = generateId("m");
+
+    if (isSupabaseConfigured) {
+      const res = await saveMeetingToDb({
+        title: params.title,
+        meetingDate: params.meetingDate || new Date().toISOString(),
+        agenda: params.agenda,
+        participants: params.participants,
+        rawNotes: params.rawNotes,
+        summary: params.summary,
+        decisions: params.decisions,
+        actionItems: params.actionItems.map((a) => ({
+          title: a.title,
+          description: a.description,
+          ownerName: a.owner_name,
+          dueDate: a.due_date,
+          priority: a.priority,
+          status: a.status,
+        })),
+      });
+      meetingId = res.meetingId;
+      await refreshData();
+      return meetingId;
+    }
+
+    // In-memory fallback
+    const participantList = params.participants
+      .split(",")
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .map((name) => ({
+        name,
+        email: `${name.toLowerCase().replace(/\s+/g, ".")}@digiplus.internal`,
+      }));
+
     const newMeeting: Meeting = {
-      ...meetingData,
-      id: generateTimestampId("m"),
-      createdAt: nowIso,
-      updatedAt: nowIso,
+      id: meetingId,
+      title: params.title,
+      date: params.meetingDate ? params.meetingDate.split("T")[0] : new Date().toISOString().split("T")[0],
+      time: "10:00 AM",
+      durationMinutes: 45,
+      location: "Virtual Room",
+      status: "completed",
+      participants: participantList.length > 0 ? participantList : [{ name: settings.userName }],
+      agenda: params.agenda,
+      notes: params.rawNotes,
+      rawNotes: params.rawNotes,
+      aiSummary: params.summary,
+      summary: params.summary,
+      decisions: params.decisions,
+      actionItems: params.actionItems.map((a) =>
+        a.owner_name ? `${a.title} (${a.owner_name})` : a.title
+      ),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
+    const newTasks: Task[] = params.actionItems.map((a, idx) => ({
+      id: generateId("t"),
+      title: a.title,
+      description: a.description || undefined,
+      owner: a.owner_name || settings.userName,
+      dueDate: a.due_date || new Date(Date.now() + (idx + 3) * 86400000).toISOString().split("T")[0],
+      priority: a.priority,
+      status: a.status,
+      meetingId,
+      meetingTitle: params.title,
+      carriedOver: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }));
+
     startTransition(() => {
-      setData((prev) => ({
-        ...prev,
-        meetings: [newMeeting, ...prev.meetings],
-      }));
+      setMeetings((prev) => [newMeeting, ...prev]);
+      setTasks((prev) => [...newTasks, ...prev]);
     });
+
+    return meetingId;
+  };
+
+  const addMeeting = async (
+    data: Omit<Meeting, "id" | "createdAt" | "updatedAt">
+  ): Promise<Meeting> => {
+    let meetingId = generateId("m");
+
+    if (isSupabaseConfigured) {
+      try {
+        const participantStr = data.participants.map((p) => p.name).join(", ");
+        const res = await saveMeetingToDb({
+          title: data.title,
+          meetingDate: `${data.date}T10:00:00Z`,
+          agenda: data.agenda,
+          participants: participantStr,
+          rawNotes: data.notes || data.rawNotes || "",
+          summary: data.aiSummary || data.summary,
+          decisions: data.decisions,
+        });
+        meetingId = res.meetingId;
+        await refreshData();
+      } catch (err) {
+        logger.error({ err }, "Could not save meeting to Supabase");
+      }
+    }
+
+    const newMeeting: Meeting = {
+      ...data,
+      id: meetingId,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (!isSupabaseConfigured) {
+      startTransition(() => {
+        setMeetings((prev) => [newMeeting, ...prev]);
+      });
+    }
 
     return newMeeting;
   };
 
   const updateMeeting = (id: string, updates: Partial<Meeting>) => {
-    const nowIso = getInitialIsoDate();
     startTransition(() => {
-      setData((prev) => ({
-        ...prev,
-        meetings: prev.meetings.map((m) =>
-          m.id === id ? { ...m, ...updates, updatedAt: nowIso } : m
-        ),
-      }));
+      setMeetings((prev) =>
+        prev.map((m) =>
+          m.id === id ? { ...m, ...updates, updatedAt: new Date().toISOString() } : m
+        )
+      );
     });
   };
 
   const deleteMeeting = (id: string) => {
     startTransition(() => {
-      setData((prev) => ({
-        ...prev,
-        meetings: prev.meetings.filter((m) => m.id !== id),
-      }));
+      setMeetings((prev) => prev.filter((m) => m.id !== id));
     });
   };
 
-  const addTask = (taskData: Omit<Task, "id" | "createdAt" | "updatedAt" | "history">): Task => {
-    const nowIso = getInitialIsoDate();
+  const addTask = async (
+    taskData: Omit<Task, "id" | "createdAt" | "updatedAt" | "history">
+  ): Promise<Task> => {
+    if (isSupabaseConfigured) {
+      try {
+        const created = await createActionItemInDb({
+          title: taskData.title,
+          description: taskData.description,
+          ownerName: taskData.owner,
+          dueDate: taskData.dueDate,
+          priority: taskData.priority,
+          status: taskData.status,
+          meetingId: taskData.meetingId,
+        });
+        await refreshData();
+        return created;
+      } catch (err) {
+        logger.error({ err }, "Could not save task to Supabase");
+      }
+    }
+
     const newTask: Task = {
       ...taskData,
-      id: generateTimestampId("t"),
-      createdAt: nowIso,
-      updatedAt: nowIso,
+      id: generateId("t"),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       history: [
         {
-          id: generateTimestampId("h"),
-          timestamp: nowIso,
+          id: generateId("h"),
+          timestamp: new Date().toISOString(),
           action: "Task created",
           performedBy: settings.userName,
         },
@@ -359,101 +400,103 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     };
 
     startTransition(() => {
-      setData((prev) => ({
-        ...prev,
-        tasks: [newTask, ...prev.tasks],
-      }));
+      setTasks((prev) => [newTask, ...prev]);
     });
 
     return newTask;
   };
 
-  const updateTask = (id: string, updates: Partial<Task>) => {
-    const nowIso = getInitialIsoDate();
+  const updateTask = async (id: string, updates: Partial<Task>): Promise<void> => {
+    if (isSupabaseConfigured && updates.status) {
+      try {
+        await updateActionItemStatusInDb(id, updates.status);
+      } catch (err) {
+        logger.error({ err }, "Could not update task status in Supabase");
+      }
+    }
+
     startTransition(() => {
-      setData((prev) => ({
-        ...prev,
-        tasks: prev.tasks.map((t) => {
+      setTasks((prev) =>
+        prev.map((t) => {
           if (t.id === id) {
             const newHistory = [...(t.history || [])];
             if (updates.status && updates.status !== t.status) {
               newHistory.push({
-                id: generateTimestampId("h"),
-                timestamp: nowIso,
+                id: generateId("h"),
+                timestamp: new Date().toISOString(),
                 action: `Status changed to ${updates.status}`,
-                performedBy: prev.settings.userName,
+                performedBy: settings.userName,
               });
             }
             return {
               ...t,
               ...updates,
-              updatedAt: nowIso,
+              updatedAt: new Date().toISOString(),
               history: newHistory,
             };
           }
           return t;
-        }),
-      }));
+        })
+      );
     });
   };
 
   const deleteTask = (id: string) => {
     startTransition(() => {
-      setData((prev) => ({
-        ...prev,
-        tasks: prev.tasks.filter((t) => t.id !== id),
-      }));
+      setTasks((prev) => prev.filter((t) => t.id !== id));
     });
   };
 
-  const addKnowledgeDoc = (
+  const addKnowledgeDoc = async (
     docData: Omit<KnowledgeDocument, "id" | "createdAt" | "updatedAt">
-  ): KnowledgeDocument => {
-    const nowIso = getInitialIsoDate();
+  ): Promise<KnowledgeDocument> => {
+    if (isSupabaseConfigured) {
+      try {
+        const created = await saveKnowledgeDocumentToDb({
+          title: docData.title,
+          content: docData.content,
+          category: docData.category,
+        });
+        await refreshData();
+        return created;
+      } catch (err) {
+        logger.error({ err }, "Could not save knowledge document to Supabase");
+      }
+    }
+
     const newDoc: KnowledgeDocument = {
       ...docData,
-      id: generateTimestampId("doc"),
-      createdAt: nowIso,
-      updatedAt: nowIso,
+      id: generateId("doc"),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
     startTransition(() => {
-      setData((prev) => ({
-        ...prev,
-        knowledgeDocs: [newDoc, ...prev.knowledgeDocs],
-      }));
+      setKnowledgeDocs((prev) => [newDoc, ...prev]);
     });
 
     return newDoc;
   };
 
   const updateKnowledgeDoc = (id: string, updates: Partial<KnowledgeDocument>) => {
-    const nowIso = getInitialIsoDate();
     startTransition(() => {
-      setData((prev) => ({
-        ...prev,
-        knowledgeDocs: prev.knowledgeDocs.map((d) =>
-          d.id === id ? { ...d, ...updates, updatedAt: nowIso } : d
-        ),
-      }));
+      setKnowledgeDocs((prev) =>
+        prev.map((d) =>
+          d.id === id ? { ...d, ...updates, updatedAt: new Date().toISOString() } : d
+        )
+      );
     });
   };
 
   const deleteKnowledgeDoc = (id: string) => {
     startTransition(() => {
-      setData((prev) => ({
-        ...prev,
-        knowledgeDocs: prev.knowledgeDocs.filter((d) => d.id !== id),
-      }));
+      setKnowledgeDocs((prev) => prev.filter((d) => d.id !== id));
     });
   };
 
   const updateSettings = (newSettings: Partial<WorkspaceSettings>) => {
     startTransition(() => {
-      setData((prev) => ({
-        ...prev,
-        settings: { ...prev.settings, ...newSettings },
-      }));
+      setSettings((prev) => ({ ...prev, ...newSettings }));
     });
   };
 
@@ -470,7 +513,7 @@ Date: ${meeting.date} at ${meeting.time}
 Status: ${meeting.status.toUpperCase()}
 
 EXECUTIVE SUMMARY:
-${meeting.aiSummary || meeting.notes || "No detailed notes recorded yet."}
+${meeting.aiSummary || meeting.summary || meeting.notes || "No detailed notes recorded yet."}
 
 KEY DECISIONS:
 ${meeting.decisions && meeting.decisions.length > 0 ? meeting.decisions.map((d) => `• ${d}`).join("\n") : "• No major decisions logged."}
@@ -493,7 +536,12 @@ ${pendingMeetingTasks.length > 0 ? `Carry forward ${pendingMeetingTasks.length} 
         knowledgeDocs,
         settings,
         stats,
+        isDbConnected: isSupabaseConfigured,
+        isLoadingDb,
+        dbError,
+        refreshData,
         addMeeting,
+        saveMeetingWithAiRecap,
         updateMeeting,
         deleteMeeting,
         addTask,

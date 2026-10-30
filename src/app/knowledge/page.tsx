@@ -48,7 +48,7 @@ export default function KnowledgePage() {
     return matchesSearch && matchesCategory;
   });
 
-  const handleCreateSubmit = (e: React.FormEvent) => {
+  const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
       setFormError("Title is required");
@@ -64,7 +64,7 @@ export default function KnowledgePage() {
       .map((t) => t.trim().toLowerCase())
       .filter(Boolean);
 
-    const newDoc = addKnowledgeDoc({
+    const newDoc = await addKnowledgeDoc({
       title: title.trim(),
       category: category.trim(),
       tags: tags.length > 0 ? tags : ["general"],

@@ -2,6 +2,48 @@ export type Priority = "low" | "medium" | "high" | "urgent";
 
 export type TaskStatus = "pending" | "in_progress" | "completed" | "overdue";
 
+// Database Record Schemas (Supabase)
+export interface DbMeeting {
+  id: string;
+  title: string;
+  meeting_date: string;
+  agenda: string;
+  participants: string;
+  raw_notes: string;
+  summary: string | null;
+  created_at: string;
+}
+
+export interface DbDecision {
+  id: string;
+  meeting_id: string;
+  decision_text: string;
+  created_at: string;
+}
+
+export interface DbActionItem {
+  id: string;
+  meeting_id: string | null;
+  title: string;
+  description: string | null;
+  owner_name: string | null;
+  due_date: string | null;
+  priority: Priority;
+  status: TaskStatus;
+  outcome: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DbKnowledgeDocument {
+  id: string;
+  title: string;
+  content: string;
+  category: string;
+  created_at: string;
+}
+
+// Frontend Domain Models
 export interface TaskHistoryItem {
   id: string;
   timestamp: string;
@@ -20,6 +62,7 @@ export interface Task {
   status: TaskStatus;
   meetingId?: string;
   meetingTitle?: string;
+  outcome?: string;
   carriedOver?: boolean;
   createdAt: string;
   updatedAt: string;
@@ -30,6 +73,12 @@ export interface Participant {
   name: string;
   email?: string;
   role?: string;
+}
+
+export interface Decision {
+  id?: string;
+  meetingId?: string;
+  decisionText: string;
 }
 
 export interface Meeting {
@@ -43,7 +92,9 @@ export interface Meeting {
   participants: Participant[];
   agenda: string;
   notes: string;
+  rawNotes?: string;
   aiSummary?: string;
+  summary?: string;
   decisions?: string[];
   actionItems?: string[];
   pendingTasks?: string[];
@@ -80,3 +131,23 @@ export interface DashboardStats {
   overdueTasks: number;
   upcomingMeetingsCount: number;
 }
+
+// Claude AI Meeting Processing Output
+export interface ClaudeProcessedActionItem {
+  title: string;
+  description: string | null;
+  owner_name: string | null;
+  due_date: string | null;
+  priority: Priority;
+  status: TaskStatus;
+}
+
+export interface ClaudeMeetingProcessingResult {
+  summary: string;
+  key_points: string[];
+  decisions: string[];
+  action_items: ClaudeProcessedActionItem[];
+  uncertainties: string[];
+}
+
+export type ClaudeMeetingOutput = ClaudeMeetingProcessingResult;

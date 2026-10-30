@@ -45,7 +45,7 @@ export default function DashboardPage() {
     .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
     .slice(0, 5);
 
-  const handleCreateMeeting = (e: React.FormEvent) => {
+  const handleCreateMeeting = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !agenda.trim()) return;
 
@@ -55,7 +55,7 @@ export default function DashboardPage() {
       .filter(Boolean)
       .map((name) => ({ name, email: `${name.toLowerCase().replace(/\s+/g, ".")}@digiplus.internal` }));
 
-    addMeeting({
+    await addMeeting({
       title: title.trim(),
       date,
       time,

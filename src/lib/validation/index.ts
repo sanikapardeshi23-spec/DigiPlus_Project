@@ -12,7 +12,7 @@ export const meetingSchema = z.object({
   time: z.string().min(1, "Time is required"),
   durationMinutes: z.coerce.number().min(5, "Duration must be at least 5 minutes"),
   location: z.string().optional(),
-  agenda: z.string().min(5, "Agenda must be at least 5 characters"),
+  agenda: z.string().min(3, "Agenda must be at least 3 characters"),
   notes: z.string().default(""),
   participants: z.array(participantSchema).min(1, "At least one participant is required"),
 });
@@ -46,7 +46,34 @@ export const workspaceSettingsSchema = z.object({
   emailNotifications: z.boolean(),
 });
 
+// Claude AI Processing Schemas
+export const claudeActionItemSchema = z.object({
+  title: z.string().min(1, "Action item title is required"),
+  description: z.string().nullable().optional(),
+  owner_name: z.string().nullable().optional(),
+  due_date: z.string().nullable().optional(),
+  priority: z.enum(["low", "medium", "high", "urgent"]).default("medium"),
+  status: z.enum(["pending", "in_progress", "completed", "overdue"]).default("pending"),
+});
+
+export const claudeMeetingProcessingSchema = z.object({
+  summary: z.string().min(1, "Summary is required"),
+  key_points: z.array(z.string()).default([]),
+  decisions: z.array(z.string()).default([]),
+  action_items: z.array(claudeActionItemSchema).default([]),
+  uncertainties: z.array(z.string()).default([]),
+});
+
+export const claudeMeetingInputSchema = z.object({
+  title: z.string().min(1, "Meeting title is required"),
+  agenda: z.string().default(""),
+  participants: z.string().default(""),
+  raw_notes: z.string().min(1, "Raw meeting notes are required for AI analysis"),
+});
+
 export type MeetingInput = z.infer<typeof meetingSchema>;
 export type TaskInput = z.infer<typeof taskSchema>;
 export type KnowledgeDocumentInput = z.infer<typeof knowledgeDocumentSchema>;
 export type WorkspaceSettingsInput = z.infer<typeof workspaceSettingsSchema>;
+export type ClaudeMeetingInput = z.infer<typeof claudeMeetingInputSchema>;
+export type ClaudeMeetingOutput = z.infer<typeof claudeMeetingProcessingSchema>;
