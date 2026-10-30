@@ -41,3 +41,4 @@ FROM action_items ai
 WHERE NOT EXISTS (
     SELECT 1 FROM task_history th WHERE th.task_id = ai.id
 );
+

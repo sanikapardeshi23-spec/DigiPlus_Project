@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateCatchUpBriefWithClaude, CatchUpBriefInput } from "@/lib/ai/claude";
+import { generateCatchUpBriefWithOpenAI, CatchUpBriefInput } from "@/lib/ai/openai";
 import { logger } from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
       userContext: body.userContext,
     };
 
-    const result = await generateCatchUpBriefWithClaude(input);
+    const result = await generateCatchUpBriefWithOpenAI(input);
 
     return NextResponse.json({
       success: true,
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     });
   } catch (err: unknown) {
     const error = err as Error;
-    logger.error({ err }, "API: Error generating catch-up brief");
+    logger.error({ message: error.message }, "API: Error generating catch-up brief");
     return NextResponse.json(
       { error: error.message || "Failed to generate catch-up brief" },
       { status: 500 }

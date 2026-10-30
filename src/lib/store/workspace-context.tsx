@@ -29,7 +29,8 @@ const INITIAL_SETTINGS: WorkspaceSettings = {
   workspaceName: "DigiPlus Core Workspace",
   userName: "Alex Morgan",
   userEmail: "alex@digiplus.internal",
-  claudeModel: "claude-3-5-sonnet-20241022",
+  openaiModel: "gpt-4.1-mini",
+  claudeModel: "gpt-4.1-mini",
   defaultMeetingDuration: 45,
   autoExtractTasks: true,
   emailNotifications: true,
@@ -496,8 +497,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
                 updates.status === "completed"
                   ? "Task completed"
                   : t.status === "completed"
-                  ? "Task reopened"
-                  : `Status changed to ${updates.status}`;
+                    ? "Task reopened"
+                    : `Status changed to ${updates.status}`;
               newHistory.push({
                 id: generateId("h"),
                 timestamp: new Date().toISOString(),

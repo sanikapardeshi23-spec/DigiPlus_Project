@@ -101,7 +101,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
             </div>
             <div className="truncate">
               <p className="text-xs font-semibold text-slate-800 truncate">{settings.workspaceName}</p>
-              <p className="text-[10px] text-slate-400 truncate">Claude 3.5 Sonnet</p>
+              <p className="text-[10px] text-slate-400 truncate">GPT-4.1 mini</p>
             </div>
           </div>
           <ChevronRight className="h-3.5 w-3.5 text-slate-400 shrink-0" />

@@ -5,7 +5,7 @@ import { AppShell } from "@/components/layout/app-shell";
 export const metadata: Metadata = {
   title: "DigiPlus – AI-Powered Knowledge & Task Management Platform",
   description:
-    "Record meetings, extract decisions, track tasks with history, carry pending tasks forward, and organize project knowledge using Claude AI.",
+    "Record meetings, extract decisions, track tasks with history, carry pending tasks forward, and organize project knowledge using OpenAI GPT-4.1 mini.",
 };
 
 export default function RootLayout({

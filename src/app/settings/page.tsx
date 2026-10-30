@@ -22,7 +22,9 @@ export default function SettingsPage() {
   const [workspaceName, setWorkspaceName] = useState(settings.workspaceName);
   const [userName, setUserName] = useState(settings.userName);
   const [userEmail, setUserEmail] = useState(settings.userEmail);
-  const [claudeModel, setClaudeModel] = useState(settings.claudeModel);
+  const [openaiModel, setOpenaiModel] = useState(
+    settings.openaiModel || settings.claudeModel || "gpt-4.1-mini"
+  );
   const [defaultDuration, setDefaultDuration] = useState(
     settings.defaultMeetingDuration.toString()
   );
@@ -37,7 +39,8 @@ export default function SettingsPage() {
       workspaceName: workspaceName.trim(),
       userName: userName.trim(),
       userEmail: userEmail.trim(),
-      claudeModel,
+      openaiModel,
+      claudeModel: openaiModel,
       defaultMeetingDuration: parseInt(defaultDuration, 10) || 45,
       autoExtractTasks,
       emailNotifications,
@@ -55,7 +58,7 @@ export default function SettingsPage() {
           Workspace & Profile Settings
         </h1>
         <p className="text-xs text-slate-500 mt-1">
-          Manage workspace identity, Anthropic Claude AI preferences, and system defaults.
+          Manage workspace identity, OpenAI API preferences, and system defaults.
         </p>
       </div>
 
@@ -151,12 +154,12 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Claude AI & Model Configuration */}
+        {/* OpenAI AI & Model Configuration */}
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-sky-600" />
-              <CardTitle>Claude AI Configuration</CardTitle>
+              <CardTitle>OpenAI AI Configuration</CardTitle>
             </div>
             <CardDescription>
               Fine-tune the intelligence engine used for meeting summaries, task extraction, and catch-up briefs.
@@ -165,20 +168,23 @@ export default function SettingsPage() {
           <CardContent className="space-y-4">
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">
-                Anthropic Model
+                OpenAI Model
               </label>
               <Select
-                value={claudeModel}
-                onChange={(e) => setClaudeModel(e.target.value)}
+                value={openaiModel}
+                onChange={(e) => setOpenaiModel(e.target.value)}
               >
-                <option value="claude-3-5-sonnet-20241022">
-                  Claude 3.5 Sonnet (Recommended – High Speed & Superior Reasoning)
+                <option value="gpt-4.1-mini">
+                  GPT-4.1 mini (Default – High Speed & Structured Accuracy)
                 </option>
-                <option value="claude-3-opus-20240229">
-                  Claude 3 Opus (Maximum Depth)
+                <option value="gpt-4o">
+                  GPT-4o (Omni Reasoning & Depth)
                 </option>
-                <option value="claude-3-5-haiku-20241022">
-                  Claude 3.5 Haiku (Ultra Fast Execution)
+                <option value="gpt-4o-mini">
+                  GPT-4o mini (Lightweight Fast Execution)
+                </option>
+                <option value="o3-mini">
+                  o3-mini (High Reasoning Efficiency)
                 </option>
               </Select>
             </div>
@@ -234,7 +240,7 @@ export default function SettingsPage() {
 
               <div className="p-3 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-between">
                 <div>
-                  <p className="font-semibold text-slate-800">Anthropic Claude API</p>
+                  <p className="font-semibold text-slate-800">OpenAI API (GPT-4.1 mini)</p>
                   <p className="text-[11px] text-slate-500 mt-0.5">Endpoint: /api/ai/meeting-notes</p>
                 </div>
                 <Badge variant="teal">Integrated</Badge>

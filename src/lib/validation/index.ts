@@ -40,31 +40,32 @@ export const workspaceSettingsSchema = z.object({
   workspaceName: z.string().min(2, "Workspace name is required"),
   userName: z.string().min(2, "Your name is required"),
   userEmail: z.string().email("Valid email is required"),
-  claudeModel: z.string().min(1, "Claude model selection is required"),
+  openaiModel: z.string().default("gpt-4.1-mini"),
+  claudeModel: z.string().optional(),
   defaultMeetingDuration: z.coerce.number().min(15).max(240),
   autoExtractTasks: z.boolean(),
   emailNotifications: z.boolean(),
 });
 
-// Claude AI Processing Schemas
-export const claudeActionItemSchema = z.object({
+// OpenAI AI Processing Schemas
+export const actionItemSchema = z.object({
   title: z.string().min(1, "Action item title is required"),
   description: z.string().nullable().optional(),
   owner_name: z.string().nullable().optional(),
   due_date: z.string().nullable().optional(),
   priority: z.enum(["low", "medium", "high", "urgent"]).default("medium"),
-  status: z.enum(["pending", "in_progress", "completed", "overdue"]).default("pending"),
+  status: z.enum(["open", "pending", "in_progress", "completed", "overdue"]).default("pending"),
 });
 
-export const claudeMeetingProcessingSchema = z.object({
+export const meetingProcessingSchema = z.object({
   summary: z.string().min(1, "Summary is required"),
   key_points: z.array(z.string()).default([]),
   decisions: z.array(z.string()).default([]),
-  action_items: z.array(claudeActionItemSchema).default([]),
+  action_items: z.array(actionItemSchema).default([]),
   uncertainties: z.array(z.string()).default([]),
 });
 
-export const claudeMeetingInputSchema = z.object({
+export const meetingInputSchema = z.object({
   title: z.string().min(1, "Meeting title is required"),
   agenda: z.string().default(""),
   participants: z.string().default(""),
@@ -75,5 +76,12 @@ export type MeetingInput = z.infer<typeof meetingSchema>;
 export type TaskInput = z.infer<typeof taskSchema>;
 export type KnowledgeDocumentInput = z.infer<typeof knowledgeDocumentSchema>;
 export type WorkspaceSettingsInput = z.infer<typeof workspaceSettingsSchema>;
-export type ClaudeMeetingInput = z.infer<typeof claudeMeetingInputSchema>;
-export type ClaudeMeetingOutput = z.infer<typeof claudeMeetingProcessingSchema>;
+export type AiMeetingInput = z.infer<typeof meetingInputSchema>;
+export type AiMeetingOutput = z.infer<typeof meetingProcessingSchema>;
+
+// Aliases for backwards compatibility
+export const claudeActionItemSchema = actionItemSchema;
+export const claudeMeetingProcessingSchema = meetingProcessingSchema;
+export const claudeMeetingInputSchema = meetingInputSchema;
+export type ClaudeMeetingInput = AiMeetingInput;
+export type ClaudeMeetingOutput = AiMeetingOutput;

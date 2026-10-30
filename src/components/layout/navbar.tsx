@@ -150,7 +150,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
           {/* AI Status Badge */}
           <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-medium">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            Claude AI Ready
+            OpenAI Ready
           </div>
 
           {/* Notification Icon */}

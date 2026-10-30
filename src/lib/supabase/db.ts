@@ -63,12 +63,12 @@ export async function fetchMeetingsFromDb(): Promise<Meeting[]> {
 
       const participantList = m.participants
         ? m.participants.split(",").map((p) => {
-            const name = p.trim();
-            return {
-              name,
-              email: `${name.toLowerCase().replace(/\s+/g, ".")}@digiplus.internal`,
-            };
-          })
+          const name = p.trim();
+          return {
+            name,
+            email: `${name.toLowerCase().replace(/\s+/g, ".")}@digiplus.internal`,
+          };
+        })
         : [{ name: "Alex Morgan" }];
 
       const mDateObj = new Date(m.meeting_date);

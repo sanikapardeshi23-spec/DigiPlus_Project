@@ -62,17 +62,12 @@ export default function TasksPage() {
   const [editOutcome, setEditOutcome] = useState("");
   const [editError, setEditError] = useState("");
 
-  const [todayStr, setTodayStr] = useState("2026-10-30");
-
-  React.useEffect(() => {
-    setTodayStr(new Date().toISOString().split("T")[0]);
-  }, []);
-
   // Helper to determine if a task is overdue
   const isTaskOverdue = (t: Task): boolean => {
     if (t.status === "completed") return false;
     if (t.status === "overdue") return true;
-    return Boolean(t.dueDate && t.dueDate < todayStr);
+    const nowIso = typeof window !== "undefined" ? new Date().toISOString().split("T")[0] : "2026-10-30";
+    return Boolean(t.dueDate && t.dueDate < nowIso);
   };
 
   const filteredTasks = tasks.filter((t) => {
@@ -326,19 +321,17 @@ export default function TasksPage() {
                             isDone ? "pending" : "completed"
                           )
                         }
-                        className={`p-1.5 rounded-md transition-colors cursor-pointer ${
-                          isDone
+                        className={`p-1.5 rounded-md transition-colors cursor-pointer ${isDone
                             ? "text-emerald-600 bg-emerald-50 hover:bg-emerald-100"
                             : overdue
-                            ? "text-rose-500 hover:text-rose-700 hover:bg-rose-50"
-                            : "text-slate-400 hover:text-slate-700 hover:bg-slate-100"
-                        }`}
+                              ? "text-rose-500 hover:text-rose-700 hover:bg-rose-50"
+                              : "text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                          }`}
                         title={isDone ? "Mark as Open / Pending" : "Mark as Completed"}
                       >
                         <CheckCircle2
-                          className={`h-4 w-4 ${
-                            isDone ? "fill-emerald-600 text-white" : ""
-                          }`}
+                          className={`h-4 w-4 ${isDone ? "fill-emerald-600 text-white" : ""
+                            }`}
                         />
                       </button>
                     </TableCell>
@@ -348,13 +341,12 @@ export default function TasksPage() {
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span
-                            className={`text-xs font-semibold ${
-                              isDone
+                            className={`text-xs font-semibold ${isDone
                                 ? "line-through text-slate-400"
                                 : overdue
-                                ? "text-rose-950 font-bold"
-                                : "text-slate-900"
-                            }`}
+                                  ? "text-rose-950 font-bold"
+                                  : "text-slate-900"
+                              }`}
                           >
                             {task.title}
                           </span>
@@ -397,10 +389,10 @@ export default function TasksPage() {
                           task.priority === "urgent"
                             ? "danger"
                             : task.priority === "high"
-                            ? "warning"
-                            : task.priority === "medium"
-                            ? "default"
-                            : "secondary"
+                              ? "warning"
+                              : task.priority === "medium"
+                                ? "default"
+                                : "secondary"
                         }
                       >
                         {task.priority}
@@ -411,22 +403,20 @@ export default function TasksPage() {
                     <TableCell>
                       <div className="flex items-center gap-1">
                         <Clock
-                          className={`h-3 w-3 ${
-                            overdue
+                          className={`h-3 w-3 ${overdue
                               ? "text-rose-600"
                               : isDone
-                              ? "text-slate-400"
-                              : "text-slate-400"
-                          }`}
+                                ? "text-slate-400"
+                                : "text-slate-400"
+                            }`}
                         />
                         <span
-                          className={`text-xs font-medium ${
-                            overdue
+                          className={`text-xs font-medium ${overdue
                               ? "text-rose-600 font-bold"
                               : isDone
-                              ? "text-slate-400"
-                              : "text-slate-600"
-                          }`}
+                                ? "text-slate-400"
+                                : "text-slate-600"
+                            }`}
                         >
                           {formatDate(task.dueDate)}
                         </span>
@@ -532,7 +522,7 @@ export default function TasksPage() {
             <div>
               <label className="block font-medium text-slate-700 mb-1">Task Title *</label>
               <Input
-                placeholder="e.g. Implement Claude API prompt response parser"
+                placeholder="e.g. Implement OpenAI API prompt response parser"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
@@ -834,8 +824,8 @@ export default function TasksPage() {
                     historyTask.status === "completed"
                       ? "success"
                       : isTaskOverdue(historyTask)
-                      ? "danger"
-                      : "default"
+                        ? "danger"
+                        : "default"
                   }
                 >
                   {isTaskOverdue(historyTask) ? "Overdue" : historyTask.status}
@@ -894,14 +884,14 @@ export default function TasksPage() {
                 {(historyTask.history && historyTask.history.length > 0
                   ? historyTask.history
                   : [
-                      {
-                        id: "h-init",
-                        timestamp: historyTask.createdAt,
-                        action: "Task created",
-                        details: "Task initialized in workspace",
-                        performedBy: historyTask.owner,
-                      },
-                    ]
+                    {
+                      id: "h-init",
+                      timestamp: historyTask.createdAt,
+                      action: "Task created",
+                      details: "Task initialized in workspace",
+                      performedBy: historyTask.owner,
+                    },
+                  ]
                 ).map((evt) => (
                   <div key={evt.id} className="relative">
                     <span className="absolute -left-6 top-1 h-2.5 w-2.5 rounded-full border-2 border-white bg-sky-500 shadow-xs" />

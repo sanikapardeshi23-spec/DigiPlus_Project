@@ -71,7 +71,7 @@ export default function MeetingsPage() {
   const [briefContent, setBriefContent] = useState("");
   const [briefTargetMeeting, setBriefTargetMeeting] = useState<Meeting | null>(null);
   const [isGeneratingAiBrief, setIsGeneratingAiBrief] = useState(false);
-  const [aiBriefSource, setAiBriefSource] = useState<"template" | "claude">("template");
+  const [aiBriefSource, setAiBriefSource] = useState<"template" | "openai">("template");
 
   // Edit notes state inside detail view
   const [currentNotes, setCurrentNotes] = useState("");
@@ -117,14 +117,14 @@ export default function MeetingsPage() {
   // Eligible tasks for carry-over (strictly open/pending/in_progress, never completed)
   const openTasksForCarryOver = tasks.filter((t) => t.status !== "completed");
 
-  // 1. Generate AI Recap using real Claude API
+  // 1. Generate AI Recap using real OpenAI API
   const handleGenerateAiRecap = async () => {
     if (!formTitle.trim()) {
       setAiError("Please enter a meeting title before generating AI recap.");
       return;
     }
     if (!formRawNotes.trim()) {
-      setAiError("Please provide raw meeting notes for Claude to analyze.");
+      setAiError("Please provide raw meeting notes for OpenAI to analyze.");
       return;
     }
 
@@ -146,12 +146,12 @@ export default function MeetingsPage() {
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(data.error || "Failed to process meeting notes with Claude.");
+        throw new Error(data.error || "Failed to process meeting notes with OpenAI.");
       }
 
       const result = data.data;
 
-      // Populate editable fields with real Claude output
+      // Populate editable fields with real OpenAI output
       setRecapSummary(result.summary || "");
       setRecapKeyPoints(result.key_points || []);
       setRecapDecisions(result.decisions || []);
@@ -170,7 +170,7 @@ export default function MeetingsPage() {
     } catch (err: unknown) {
       const e = err as Error;
       setAiError(
-        e.message || "Claude API request failed. Raw notes remain safely preserved."
+        e.message || "OpenAI API request failed. Raw notes remain safely preserved."
       );
     } finally {
       setIsGeneratingAi(false);
@@ -296,8 +296,8 @@ export default function MeetingsPage() {
     setBriefDialogOpen(true);
   };
 
-  // Generate real Claude AI Catch-up Brief via API
-  const handleGenerateClaudeBrief = async () => {
+  // Generate real OpenAI Catch-up Brief via API
+  const handleGenerateOpenAiBrief = async () => {
     if (!briefTargetMeeting) return;
 
     setIsGeneratingAiBrief(true);
@@ -339,10 +339,10 @@ export default function MeetingsPage() {
       }
 
       setBriefContent(data.brief);
-      setAiBriefSource(data.aiGenerated ? "claude" : "template");
+      setAiBriefSource(data.aiGenerated ? "openai" : "template");
     } catch (err: unknown) {
       const e = err as Error;
-      alert(`Could not generate Claude brief: ${e.message}`);
+      alert(`Could not generate AI brief: ${e.message}`);
     } finally {
       setIsGeneratingAiBrief(false);
     }
@@ -481,11 +481,10 @@ export default function MeetingsPage() {
                 <div
                   key={m.id}
                   onClick={() => handleSelectMeeting(m)}
-                  className={`p-4 rounded-xl border cursor-pointer transition-all ${
-                    isSelected
+                  className={`p-4 rounded-xl border cursor-pointer transition-all ${isSelected
                       ? "border-sky-500 bg-sky-50/40 shadow-xs ring-1 ring-sky-500"
                       : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-2xs"
-                  }`}
+                    }`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="text-sm font-semibold text-slate-900 leading-snug">
@@ -496,8 +495,8 @@ export default function MeetingsPage() {
                         m.status === "completed"
                           ? "success"
                           : m.status === "in_progress"
-                          ? "warning"
-                          : "default"
+                            ? "warning"
+                            : "default"
                       }
                     >
                       {m.status}
@@ -689,13 +688,12 @@ export default function MeetingsPage() {
                         >
                           <div className="flex items-center gap-2">
                             <span
-                              className={`h-2 w-2 rounded-full shrink-0 ${
-                                t.status === "completed"
+                              className={`h-2 w-2 rounded-full shrink-0 ${t.status === "completed"
                                   ? "bg-emerald-500"
                                   : t.status === "overdue"
-                                  ? "bg-rose-500"
-                                  : "bg-amber-500"
-                              }`}
+                                    ? "bg-rose-500"
+                                    : "bg-amber-500"
+                                }`}
                             />
                             <div className="space-y-0.5">
                               <div className="flex items-center gap-2">
@@ -724,8 +722,8 @@ export default function MeetingsPage() {
                                 t.status === "completed"
                                   ? "success"
                                   : t.status === "overdue"
-                                  ? "danger"
-                                  : "default"
+                                    ? "danger"
+                                    : "default"
                               }
                             >
                               {t.status}
@@ -756,7 +754,7 @@ export default function MeetingsPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-sky-600" />
-              New Meeting & Claude AI Recap Workflow
+              New Meeting & AI Recap Workflow
             </DialogTitle>
             <DialogDescription>
               Enter notes, carry forward open sprint tasks, generate an AI recap, edit items, and save permanently to Supabase.
@@ -834,11 +832,10 @@ export default function MeetingsPage() {
                     return (
                       <label
                         key={t.id}
-                        className={`flex items-center justify-between p-2 rounded border cursor-pointer text-xs transition-colors ${
-                          isChecked
+                        className={`flex items-center justify-between p-2 rounded border cursor-pointer text-xs transition-colors ${isChecked
                             ? "bg-amber-100/70 border-amber-300 text-slate-900"
                             : "bg-white border-slate-200 text-slate-700 hover:border-amber-200"
-                        }`}
+                          }`}
                       >
                         <div className="flex items-center gap-2">
                           <input
@@ -888,7 +885,7 @@ export default function MeetingsPage() {
               </div>
               <Textarea
                 rows={5}
-                placeholder="Team reviewed Q4 roadmap. Agreed to deploy Claude 3.5 Sonnet prompt processing by Friday. Alex will coordinate testing with QA. Sara raised concerns on API timeouts, agreed to implement timeout fallback..."
+                placeholder="Team reviewed Q4 roadmap. Agreed to deploy OpenAI prompt processing by Friday. Alex will coordinate testing with QA. Sara raised concerns on API timeouts, agreed to implement timeout fallback..."
                 value={formRawNotes}
                 onChange={(e) => setFormRawNotes(e.target.value)}
                 required
@@ -901,20 +898,20 @@ export default function MeetingsPage() {
               <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 text-amber-800 text-xs flex items-start gap-2">
                 <Bot className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
                 <div>
-                  <p className="font-semibold">Claude AI Processing Notice</p>
+                  <p className="font-semibold">OpenAI Processing Notice</p>
                   <p className="text-[11px] mt-0.5 text-amber-700">{aiError}</p>
                 </div>
               </div>
             )}
 
-            {/* Action to Trigger Claude AI Recap */}
+            {/* Action to Trigger OpenAI AI Recap */}
             <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
               <div>
                 <p className="font-semibold text-slate-800 text-xs">
                   Generate Structured AI Recap
                 </p>
                 <p className="text-[11px] text-slate-500">
-                  Claude extracts key discussion points, concrete decisions, and action items with owners and due dates.
+                  OpenAI extracts key discussion points, concrete decisions, and action items with owners and due dates.
                 </p>
               </div>
 
@@ -940,7 +937,7 @@ export default function MeetingsPage() {
                 </h4>
                 {hasGeneratedRecap && (
                   <Badge variant="teal" className="text-[10px]">
-                    Claude AI Synthesized
+                    GPT-4.1 mini Synthesized
                   </Badge>
                 )}
               </div>
@@ -1173,11 +1170,10 @@ export default function MeetingsPage() {
                 return (
                   <label
                     key={t.id}
-                    className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer text-xs transition-colors ${
-                      isChecked
+                    className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer text-xs transition-colors ${isChecked
                         ? "bg-amber-50 border-amber-300 text-slate-900"
                         : "bg-white border-slate-200 text-slate-700 hover:border-amber-200"
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center gap-2">
                       <input
@@ -1245,9 +1241,9 @@ export default function MeetingsPage() {
               <Sparkles className="h-5 w-5 text-sky-600" />
               AI Catch-Up Executive Brief
             </DialogTitle>
-            {aiBriefSource === "claude" ? (
+            {aiBriefSource === "openai" ? (
               <Badge variant="teal" className="text-[10px]">
-                Claude 3.5 Sonnet Synthesized
+                GPT-4.1 mini Synthesized
               </Badge>
             ) : (
               <Badge variant="secondary" className="text-[10px]">
@@ -1260,24 +1256,24 @@ export default function MeetingsPage() {
           </DialogDescription>
         </DialogHeader>
 
-        {/* Live Claude AI trigger button */}
+        {/* Live OpenAI trigger button */}
         <div className="flex items-center justify-between p-2.5 bg-sky-50/60 rounded-lg border border-sky-100 my-2">
           <div className="text-xs">
             <p className="font-semibold text-sky-950">Synthesize Deep Executive Brief</p>
             <p className="text-[11px] text-sky-700">
-              Generate an intelligent Claude AI brief with decisions, blockers, and next 48-hour steps.
+              Generate an intelligent OpenAI GPT-4.1 mini brief with decisions, blockers, and next 48-hour steps.
             </p>
           </div>
 
           <Button
             size="sm"
             variant="outline"
-            onClick={handleGenerateClaudeBrief}
+            onClick={handleGenerateOpenAiBrief}
             isLoading={isGeneratingAiBrief}
             className="text-xs h-7 bg-white border-sky-300 text-sky-700 hover:bg-sky-50 shrink-0"
           >
             <Bot className="h-3 w-3 mr-1 text-sky-600" />
-            Synthesize with Claude
+            Synthesize with OpenAI
           </Button>
         </div>
 

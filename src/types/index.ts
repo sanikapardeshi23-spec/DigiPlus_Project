@@ -132,7 +132,8 @@ export interface WorkspaceSettings {
   workspaceName: string;
   userName: string;
   userEmail: string;
-  claudeModel: string;
+  openaiModel: string;
+  claudeModel?: string;
   defaultMeetingDuration: number;
   autoExtractTasks: boolean;
   emailNotifications: boolean;
@@ -147,8 +148,8 @@ export interface DashboardStats {
   upcomingMeetingsCount: number;
 }
 
-// Claude AI Meeting Processing Output
-export interface ClaudeProcessedActionItem {
+// AI Meeting Processing Output (OpenAI GPT-4.1 mini)
+export interface ProcessedActionItem {
   title: string;
   description: string | null;
   owner_name: string | null;
@@ -157,12 +158,17 @@ export interface ClaudeProcessedActionItem {
   status: TaskStatus;
 }
 
-export interface ClaudeMeetingProcessingResult {
+export interface MeetingProcessingResult {
   summary: string;
   key_points: string[];
   decisions: string[];
-  action_items: ClaudeProcessedActionItem[];
+  action_items: ProcessedActionItem[];
   uncertainties: string[];
 }
 
-export type ClaudeMeetingOutput = ClaudeMeetingProcessingResult;
+export type MeetingOutput = MeetingProcessingResult;
+
+// Aliases for backwards compatibility
+export type ClaudeProcessedActionItem = ProcessedActionItem;
+export type ClaudeMeetingProcessingResult = MeetingProcessingResult;
+export type ClaudeMeetingOutput = MeetingProcessingResult;
