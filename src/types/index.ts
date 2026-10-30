@@ -1,6 +1,6 @@
 export type Priority = "low" | "medium" | "high" | "urgent";
 
-export type TaskStatus = "pending" | "in_progress" | "completed" | "overdue";
+export type TaskStatus = "open" | "pending" | "in_progress" | "completed" | "overdue";
 
 // Database Record Schemas (Supabase)
 export interface DbMeeting {
@@ -24,6 +24,8 @@ export interface DbDecision {
 export interface DbActionItem {
   id: string;
   meeting_id: string | null;
+  original_meeting_id?: string | null;
+  carried_over?: boolean;
   title: string;
   description: string | null;
   owner_name: string | null;
@@ -33,6 +35,15 @@ export interface DbActionItem {
   outcome: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface DbTaskHistory {
+  id: string;
+  task_id: string;
+  action: string;
+  details: string | null;
+  performed_by: string;
+  created_at: string;
 }
 
 export interface DbKnowledgeDocument {
@@ -46,8 +57,10 @@ export interface DbKnowledgeDocument {
 // Frontend Domain Models
 export interface TaskHistoryItem {
   id: string;
+  taskId?: string;
   timestamp: string;
   action: string;
+  details?: string;
   performedBy: string;
 }
 
@@ -62,6 +75,8 @@ export interface Task {
   status: TaskStatus;
   meetingId?: string;
   meetingTitle?: string;
+  originalMeetingId?: string;
+  originalMeetingTitle?: string;
   outcome?: string;
   carriedOver?: boolean;
   createdAt: string;

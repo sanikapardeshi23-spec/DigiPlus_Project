@@ -102,3 +102,141 @@ Return JSON in this format:
     throw err;
   }
 }
+
+export interface CatchUpBriefInput {
+  meetingTitle: string;
+  meetingDate?: string;
+  participants?: string[];
+  agenda?: string;
+  notes?: string;
+  summary?: string;
+  decisions?: string[];
+  actionItems?: Array<{
+    title: string;
+    owner?: string;
+    dueDate?: string;
+    priority?: string;
+    status?: string;
+  }>;
+  carriedForwardTasks?: Array<{
+    title: string;
+    owner?: string;
+    origin?: string;
+  }>;
+  userContext?: string;
+}
+
+function buildStructuredFallbackBrief(input: CatchUpBriefInput): string {
+  const decisionsList =
+    input.decisions && input.decisions.length > 0
+      ? input.decisions.map((d) => `• ${d}`).join("\n")
+      : "• No formal decisions recorded.";
+
+  const actionsList =
+    input.actionItems && input.actionItems.length > 0
+      ? input.actionItems
+          .map(
+            (a) =>
+              `• [${(a.priority || "Medium").toUpperCase()}] ${a.title} → Assigned to: ${
+                a.owner || "Unassigned"
+              } (Due: ${a.dueDate || "TBD"}, Status: ${a.status || "Open"})`
+          )
+          .join("\n")
+      : "• All deliverables on schedule / no open action items.";
+
+  const carriedList =
+    input.carriedForwardTasks && input.carriedForwardTasks.length > 0
+      ? input.carriedForwardTasks
+          .map((t) => `• ↻ ${t.title} (Owner: ${t.owner || "Team"}, Origin: ${t.origin || "Previous Sync"})`)
+          .join("\n")
+      : "• No carried-over tasks for this session.";
+
+  return `# ⚡ AI Catch-Up Executive Brief: ${input.meetingTitle}
+**Date:** ${input.meetingDate || "Recent"}  
+**Attendees:** ${(input.participants || []).join(", ") || "Workspace Team"}  
+
+### 1. Executive Summary
+${input.summary || input.notes || "Discussion held covering planned agenda items and operational alignment."}
+
+### 2. Critical Decisions Made
+${decisionsList}
+
+### 3. Action Items & Accountabilities
+${actionsList}
+
+### 4. Meeting Continuity & Carried-Over Items
+${carriedList}
+
+### 5. Next Steps for Team Catch-Up
+• Review assigned items above and update status upon progress.
+• Follow up with meeting attendees if any blockers exist on open deliverables.`;
+}
+
+export async function generateCatchUpBriefWithClaude(
+  input: CatchUpBriefInput
+): Promise<{ brief: string; aiGenerated: boolean }> {
+  const anthropic = getAnthropicClient();
+  const model = process.env.ANTHROPIC_MODEL?.trim() || "claude-3-5-sonnet-20241022";
+
+  if (!anthropic) {
+    logger.info("Generating structured offline catch-up brief (Claude API key not configured)");
+    return { brief: buildStructuredFallbackBrief(input), aiGenerated: false };
+  }
+
+  const systemPrompt = `You are DigiPlus Executive Intelligence, an AI meeting synthesizer.
+Your task is to generate a comprehensive, highly readable and actionable "Catch-Up Executive Brief" for someone who missed a meeting or needs to catch up in under 60 seconds.
+
+Strict Rules:
+- Base your analysis strictly on the provided meeting context, agenda, decisions, and action items.
+- Structure your response using clean GitHub Flavored Markdown with emojis and bold headers.
+- Include these sections:
+  1. Executive Summary (2-3 concise sentences on what took place)
+  2. Critical Decisions Made (bullet points of decisions)
+  3. Action Items & Accountability (task title, owner, due date, priority, status)
+  4. Continuity & Carried-Over Items (note any carried-over tasks or continuity items)
+  5. Immediate Next Steps (actionable bullet points for the reader)`;
+
+  const userPrompt = `Create a catch-up brief for:
+Meeting: ${input.meetingTitle}
+Date: ${input.meetingDate || "Recent"}
+Attendees: ${(input.participants || []).join(", ") || "Workspace Team"}
+Agenda: ${input.agenda || "General sync"}
+Notes / Summary: ${input.summary || input.notes || "None"}
+Decisions: ${(input.decisions || []).join("; ") || "None"}
+Action Items:
+${
+  (input.actionItems || [])
+    .map(
+      (a) =>
+        `- [${a.priority || "Medium"}] ${a.title} (Owner: ${a.owner || "Unassigned"}, Due: ${
+          a.dueDate || "TBD"
+        }, Status: ${a.status || "Open"})`
+    )
+    .join("\n") || "None"
+}
+Carried-Forward Tasks:
+${
+  (input.carriedForwardTasks || [])
+    .map((t) => `- ${t.title} (Owner: ${t.owner || "Unassigned"}, Origin: ${t.origin || "Previous meeting"})`)
+    .join("\n") || "None"
+}`;
+
+  try {
+    const message = await anthropic.messages.create({
+      model,
+      max_tokens: 1500,
+      system: systemPrompt,
+      messages: [{ role: "user", content: userPrompt }],
+    });
+
+    const contentBlock = message.content[0];
+    if (!contentBlock || contentBlock.type !== "text") {
+      throw new Error("No text response received from Claude API.");
+    }
+
+    return { brief: contentBlock.text.trim(), aiGenerated: true };
+  } catch (err) {
+    logger.warn({ err }, "Claude catch-up brief API error, falling back to structured brief");
+    return { brief: buildStructuredFallbackBrief(input), aiGenerated: false };
+  }
+}

@@ -29,7 +29,6 @@ This document records key decisions made to maximize development speed, maintain
 - **Decision**: Initialized local git on `main` branch with remote origin set, verified `.gitignore` to protect `.env*` files, and staged changes cleanly without premature forced pushes.
 - **Impact**: Complies with requirement 9 while preserving repository safety.
 
-
 ### Decision 6: Two-Phase Confirmation for AI Outputs
 - **Context**: LLM outputs should never be automatically or silently committed to the database without human-in-the-loop verification.
 - **Decision**: In the meeting creation workflow, clicking "Generate AI Recap" populates editable fields (summary textarea, dynamic decision inputs, structured action item inputs). The user can edit, correct, or add entries before clicking "Save Meeting to Database".
@@ -39,3 +38,18 @@ This document records key decisions made to maximize development speed, maintain
 - **Context**: Action items and decisions belong to meetings, but action items might outlive a meeting or be standalone tasks.
 - **Decision**: Configured `decisions.meeting_id` with `ON DELETE CASCADE` and `action_items.meeting_id` with `ON DELETE SET NULL`. Added status and priority check constraints matching domain enums.
 - **Impact**: Prevents orphaned decisions while preserving task history even if a meeting record is adjusted.
+
+### Decision 8: Immutable `task_history` Table for Full Audit Trails
+- **Context**: Requirement 2 requires tracking all major task lifecycle changes (creation, owner reassignment, due date changes, status updates, completion, reopening, and carry-overs) without overwriting past history.
+- **Decision**: Created a dedicated PostgreSQL `task_history` table in Supabase linked by foreign key (`task_id UUID REFERENCES action_items(id) ON DELETE CASCADE`). Every state transition automatically writes a timestamped record.
+- **Impact**: Complete auditability, tamper-proof history, and clean display in the task details modal.
+
+### Decision 9: Non-Duplicating Meeting Continuity (Carry Forward)
+- **Context**: When carrying forward open deliverables from past syncs into new meetings, tasks must not be duplicated, and original context must be preserved.
+- **Decision**: Extended `action_items` with `original_meeting_id UUID` and `carried_over BOOLEAN`. When carried over, the task is relinked to the target meeting while retaining the immutable pointer to its origin meeting, logging a carry-forward audit event.
+- **Impact**: Eliminates task duplication, prevents stale copies, and maintains clear accountability across consecutive sprints.
+
+### Decision 10: Dual-Mode AI Meeting Catch-Up Brief
+- **Context**: Users catching up on a missed meeting need immediate, digestible intelligence, whether Anthropic Claude API is configured or operating in offline fallback.
+- **Decision**: Implemented `/api/ai/catch-up-brief` using Claude 3.5 Sonnet to synthesize an executive overview, critical decisions, action items, continuity items, and immediate 48-hour next steps, with a deterministic structured template fallback.
+- **Impact**: Zero downtime, high usability, and instant 1-click executive briefs on both the Meetings page and Workspace Dashboard.

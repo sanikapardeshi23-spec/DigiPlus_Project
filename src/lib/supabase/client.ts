@@ -1,14 +1,24 @@
 import { createClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || "";
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() || "";
+const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || "";
+const rawAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() || "";
+
+function isValidHttpUrl(str: string): boolean {
+  try {
+    const url = new URL(str);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
 
 export const isSupabaseConfigured = Boolean(
-  supabaseUrl &&
-    supabaseAnonKey &&
-    supabaseUrl !== "https://your-project-id.supabase.co" &&
-    supabaseAnonKey !== "your-supabase-anon-key"
+  rawUrl &&
+    isValidHttpUrl(rawUrl) &&
+    rawAnonKey &&
+    rawUrl !== "https://your-project-id.supabase.co" &&
+    rawAnonKey !== "your-supabase-anon-key"
 );
 
 if (!isSupabaseConfigured && typeof window !== "undefined") {
@@ -17,16 +27,15 @@ if (!isSupabaseConfigured && typeof window !== "undefined") {
   );
 }
 
-export const supabase = createClient(
-  isSupabaseConfigured ? supabaseUrl : "https://placeholder-project.supabase.co",
-  isSupabaseConfigured ? supabaseAnonKey : "placeholder-anon-key",
-  {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  }
-);
+const safeUrl = isSupabaseConfigured ? rawUrl : "https://placeholder-project.supabase.co";
+const safeKey = isSupabaseConfigured ? rawAnonKey : "placeholder-anon-key";
+
+export const supabase = createClient(safeUrl, safeKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+  },
+});
 
 export function getBrowserSupabase() {
   return supabase;

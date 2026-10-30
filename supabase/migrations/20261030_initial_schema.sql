@@ -99,3 +99,4 @@ VALUES
     ('AI Note Structuring & Catch-Up Protocol', 'When meeting notes are recorded, Claude 3.5 Sonnet analyzes unstructured discussions into: 1. Executive Summary; 2. Concrete Decisions; 3. Action Items with owners and due dates; 4. Open Questions. Any incomplete action items are automatically preserved in the task history and flagged for carry-over into upcoming syncs.', 'AI & Intelligence'),
     ('Task Lifecycle & Carry-Over SLA', 'Tasks progress through: Pending -> In Progress -> Completed. If the due date passes before completion, the status automatically switches to Overdue. Carried-over tasks maintain an immutable audit trail showing origin meeting and carry-over dates.', 'Product Ops')
 ON CONFLICT (id) DO NOTHING;
+

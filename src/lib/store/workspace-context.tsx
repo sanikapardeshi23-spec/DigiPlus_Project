@@ -15,7 +15,9 @@ import {
   fetchMeetingsFromDb,
   saveMeetingToDb,
   fetchActionItemsFromDb,
-  updateActionItemStatusInDb,
+  updateActionItemInDb,
+  deleteActionItemInDb,
+  carryForwardTasksInDb,
   createActionItemInDb,
   fetchKnowledgeDocumentsFromDb,
   saveKnowledgeDocumentToDb,
@@ -62,12 +64,14 @@ interface WorkspaceContextType {
       priority: Priority;
       status: TaskStatus;
     }>;
+    carryForwardTaskIds?: string[];
   }) => Promise<string>;
   updateMeeting: (id: string, updates: Partial<Meeting>) => void;
   deleteMeeting: (id: string) => void;
   addTask: (task: Omit<Task, "id" | "createdAt" | "updatedAt" | "history">) => Promise<Task>;
   updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
-  deleteTask: (id: string) => void;
+  deleteTask: (id: string) => Promise<void>;
+  carryForwardTasks: (taskIds: string[], targetMeetingId: string) => Promise<void>;
   addKnowledgeDoc: (doc: Omit<KnowledgeDocument, "id" | "createdAt" | "updatedAt">) => Promise<KnowledgeDocument>;
   updateKnowledgeDoc: (id: string, updates: Partial<KnowledgeDocument>) => void;
   deleteKnowledgeDoc: (id: string) => void;
@@ -226,6 +230,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       priority: Priority;
       status: TaskStatus;
     }>;
+    carryForwardTaskIds?: string[];
   }): Promise<string> => {
     let meetingId = generateId("m");
 
@@ -248,6 +253,17 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         })),
       });
       meetingId = res.meetingId;
+
+      // Handle carry forward tasks if any were selected
+      if (params.carryForwardTaskIds && params.carryForwardTaskIds.length > 0) {
+        await carryForwardTasksInDb({
+          taskIds: params.carryForwardTaskIds,
+          targetMeetingId: meetingId,
+          targetMeetingTitle: params.title,
+          performedBy: settings.userName,
+        });
+      }
+
       await refreshData();
       return meetingId;
     }
@@ -297,11 +313,48 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       carriedOver: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      history: [
+        {
+          id: generateId("h"),
+          timestamp: new Date().toISOString(),
+          action: "Task created from meeting",
+          details: `Created during meeting: ${params.title}`,
+          performedBy: a.owner_name || settings.userName,
+        },
+      ],
     }));
 
     startTransition(() => {
       setMeetings((prev) => [newMeeting, ...prev]);
-      setTasks((prev) => [...newTasks, ...prev]);
+      setTasks((prev) => {
+        let updated = [...newTasks, ...prev];
+        if (params.carryForwardTaskIds && params.carryForwardTaskIds.length > 0) {
+          updated = updated.map((t) => {
+            if (params.carryForwardTaskIds?.includes(t.id)) {
+              return {
+                ...t,
+                originalMeetingId: t.originalMeetingId || t.meetingId,
+                originalMeetingTitle: t.originalMeetingTitle || t.meetingTitle,
+                meetingId,
+                meetingTitle: params.title,
+                carriedOver: true,
+                history: [
+                  ...(t.history || []),
+                  {
+                    id: generateId("h"),
+                    timestamp: new Date().toISOString(),
+                    action: "Task carried forward to another meeting",
+                    details: `Carried forward into "${params.title}"`,
+                    performedBy: settings.userName,
+                  },
+                ],
+              };
+            }
+            return t;
+          });
+        }
+        return updated;
+      });
     });
 
     return meetingId;
@@ -407,11 +460,29 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateTask = async (id: string, updates: Partial<Task>): Promise<void> => {
-    if (isSupabaseConfigured && updates.status) {
+    const existingTask = tasks.find((t) => t.id === id);
+
+    if (isSupabaseConfigured) {
       try {
-        await updateActionItemStatusInDb(id, updates.status);
+        await updateActionItemInDb(
+          id,
+          {
+            title: updates.title,
+            description: updates.description,
+            ownerName: updates.owner,
+            dueDate: updates.dueDate,
+            priority: updates.priority,
+            status: updates.status,
+            meetingId: updates.meetingId,
+            outcome: updates.outcome,
+          },
+          existingTask,
+          settings.userName
+        );
+        await refreshData();
+        return;
       } catch (err) {
-        logger.error({ err }, "Could not update task status in Supabase");
+        logger.error({ err }, "Could not update task in Supabase");
       }
     }
 
@@ -421,10 +492,35 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
           if (t.id === id) {
             const newHistory = [...(t.history || [])];
             if (updates.status && updates.status !== t.status) {
+              const actionLabel =
+                updates.status === "completed"
+                  ? "Task completed"
+                  : t.status === "completed"
+                  ? "Task reopened"
+                  : `Status changed to ${updates.status}`;
               newHistory.push({
                 id: generateId("h"),
                 timestamp: new Date().toISOString(),
-                action: `Status changed to ${updates.status}`,
+                action: actionLabel,
+                details: updates.outcome || undefined,
+                performedBy: settings.userName,
+              });
+            }
+            if (updates.owner && updates.owner !== t.owner) {
+              newHistory.push({
+                id: generateId("h"),
+                timestamp: new Date().toISOString(),
+                action: "Owner changed",
+                details: `Reassigned from ${t.owner} to ${updates.owner}`,
+                performedBy: settings.userName,
+              });
+            }
+            if (updates.dueDate && updates.dueDate !== t.dueDate) {
+              newHistory.push({
+                id: generateId("h"),
+                timestamp: new Date().toISOString(),
+                action: "Due date changed",
+                details: `Changed from ${t.dueDate} to ${updates.dueDate}`,
                 performedBy: settings.userName,
               });
             }
@@ -441,9 +537,71 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  const deleteTask = (id: string) => {
+  const deleteTask = async (id: string): Promise<void> => {
+    if (isSupabaseConfigured) {
+      try {
+        await deleteActionItemInDb(id);
+        await refreshData();
+        return;
+      } catch (err) {
+        logger.error({ err }, "Could not delete task from Supabase");
+      }
+    }
+
     startTransition(() => {
       setTasks((prev) => prev.filter((t) => t.id !== id));
+    });
+  };
+
+  const carryForwardTasks = async (taskIds: string[], targetMeetingId: string): Promise<void> => {
+    const targetMeeting = meetings.find((m) => m.id === targetMeetingId);
+    const targetTitle = targetMeeting?.title || "Upcoming Meeting";
+
+    if (isSupabaseConfigured) {
+      try {
+        await carryForwardTasksInDb({
+          taskIds,
+          targetMeetingId,
+          targetMeetingTitle: targetTitle,
+          performedBy: settings.userName,
+        });
+        await refreshData();
+        return;
+      } catch (err) {
+        logger.error({ err }, "Could not carry forward tasks in Supabase");
+      }
+    }
+
+    startTransition(() => {
+      setTasks((prev) =>
+        prev.map((t) => {
+          if (taskIds.includes(t.id) && t.status !== "completed") {
+            const originalMeetingId = t.originalMeetingId || t.meetingId;
+            const originalMeetingTitle = t.originalMeetingTitle || t.meetingTitle;
+            const newHistory = [
+              ...(t.history || []),
+              {
+                id: generateId("h"),
+                timestamp: new Date().toISOString(),
+                action: "Task carried forward to another meeting",
+                details: `Carried forward into "${targetTitle}"`,
+                performedBy: settings.userName,
+              },
+            ];
+            return {
+              ...t,
+              meetingId: targetMeetingId,
+              meetingTitle: targetTitle,
+              originalMeetingId,
+              originalMeetingTitle,
+              carriedOver: true,
+              history: newHistory,
+              updatedAt: new Date().toISOString(),
+            };
+          }
+          return t;
+        })
+      );
     });
   };
 
@@ -547,6 +705,7 @@ ${pendingMeetingTasks.length > 0 ? `Carry forward ${pendingMeetingTasks.length} 
         addTask,
         updateTask,
         deleteTask,
+        carryForwardTasks,
         addKnowledgeDoc,
         updateKnowledgeDoc,
         deleteKnowledgeDoc,
