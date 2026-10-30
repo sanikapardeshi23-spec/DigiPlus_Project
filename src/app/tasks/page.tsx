@@ -25,6 +25,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { useWorkspace } from "@/lib/store/workspace-context";
 import { formatDate } from "@/lib/utils";
 import { Task, Priority, TaskStatus } from "@/types";
+import { validateTaskForm } from "@/lib/validation";
 
 export default function TasksPage() {
   const { tasks, addTask, updateTask, deleteTask, meetings, settings } = useWorkspace();
@@ -98,8 +99,16 @@ export default function TasksPage() {
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) {
-      setFormError("Task title is required");
+    const validation = validateTaskForm({
+      title: title.trim(),
+      owner: owner.trim(),
+      dueDate,
+      priority,
+      status,
+    });
+
+    if (!validation.isValid) {
+      setFormError(validation.error || "Please enter valid task details");
       return;
     }
 
@@ -142,8 +151,17 @@ export default function TasksPage() {
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingTaskId) return;
-    if (!editTitle.trim()) {
-      setEditError("Task title is required");
+
+    const validation = validateTaskForm({
+      title: editTitle.trim(),
+      owner: editOwner.trim(),
+      dueDate: editDueDate,
+      priority: editPriority,
+      status: editStatus,
+    });
+
+    if (!validation.isValid) {
+      setEditError(validation.error || "Please enter valid task details");
       return;
     }
 

@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { logger } from "@/lib/logger";
+import { logger, generateRequestId } from "@/lib/logger";
 import {
   meetingProcessingSchema,
   AiMeetingOutput,
@@ -19,16 +19,29 @@ export function getOpenAIModel(): string {
 }
 
 export async function processMeetingWithOpenAI(
-  input: AiMeetingInput
+  input: AiMeetingInput,
+  requestId: string = generateRequestId("req-ai-meeting")
 ): Promise<AiMeetingOutput> {
   const openai = getOpenAIClient();
   const model = getOpenAIModel();
+  const startTime = Date.now();
+
+  logger.ai(
+    "ai_request_started",
+    {
+      model,
+      meetingTitle: input.title,
+      notesLength: input.raw_notes.length,
+      hasAgenda: Boolean(input.agenda),
+    },
+    requestId
+  );
 
   if (!openai) {
-    logger.warn("OPENAI_API_KEY is not configured in .env.local.");
-    throw new Error(
-      "OPENAI_API_KEY is not configured. Please add your OpenAI API key to .env.local to enable real OpenAI processing."
-    );
+    const errorMsg =
+      "OPENAI_API_KEY is not configured. Please add your OpenAI API key to .env.local to enable real OpenAI processing.";
+    logger.ai("ai_request_failed", { error: errorMsg, reason: "API_KEY_MISSING" }, requestId, "warn");
+    throw new Error(errorMsg);
   }
 
   const systemPrompt = `You are DigiPlus AI, an expert workspace meeting synthesizer.
@@ -73,8 +86,6 @@ Return JSON in this format:
 }`;
 
   try {
-    logger.info({ model, title: input.title }, "Sending meeting notes to OpenAI API");
-
     const completion = await openai.chat.completions.create({
       model,
       response_format: { type: "json_object" },
@@ -85,32 +96,87 @@ Return JSON in this format:
       temperature: 0.1,
     });
 
+    const latencyMs = Date.now() - startTime;
+    logger.ai(
+      "ai_response_latency",
+      { durationMs: latencyMs, model },
+      requestId,
+      "info"
+    );
+
     const content = completion.choices[0]?.message?.content;
     if (!content) {
-      throw new Error("No response received from OpenAI API.");
+      throw new Error("No response content received from OpenAI API.");
     }
 
-    const rawJson = JSON.parse(content);
-    const validated = meetingProcessingSchema.parse(rawJson);
-    logger.info(
-      { actionItemsCount: validated.action_items.length },
-      "OpenAI meeting processing succeeded"
+    let rawJson: unknown;
+    try {
+      rawJson = JSON.parse(content);
+    } catch {
+      logger.ai(
+        "ai_response_validation_failed",
+        { error: "Malformed JSON response from OpenAI", rawContent: content.substring(0, 100) },
+        requestId,
+        "error"
+      );
+      throw new Error("Failed to parse JSON response from OpenAI API.");
+    }
+
+    const validationResult = meetingProcessingSchema.safeParse(rawJson);
+    if (!validationResult.success) {
+      logger.ai(
+        "ai_response_validation_failed",
+        {
+          error: "OpenAI JSON output did not conform to schema",
+          issues: validationResult.error.format(),
+        },
+        requestId,
+        "error"
+      );
+      throw new Error("Invalid structured format returned by OpenAI.");
+    }
+
+    const validated = validationResult.data;
+
+    logger.ai(
+      "ai_request_completed",
+      {
+        actionItemsCount: validated.action_items.length,
+        decisionsCount: validated.decisions.length,
+        durationMs: latencyMs,
+        status: "success",
+      },
+      requestId,
+      "info"
     );
+
     return validated;
   } catch (err: unknown) {
     const error = err as Error;
-    // Log error message safely without exposing headers or secrets
-    logger.error({ message: error.message }, "Error processing meeting with OpenAI API");
+    const latencyMs = Date.now() - startTime;
+
+    logger.ai(
+      "ai_request_failed",
+      {
+        message: error.message,
+        durationMs: latencyMs,
+        status: "failure",
+      },
+      requestId,
+      "error"
+    );
+
     throw err;
   }
 }
 
 export interface CatchUpBriefInput {
+  meetingId?: string;
   meetingTitle: string;
   meetingDate?: string;
-  participants?: string[] | string;
   agenda?: string;
   notes?: string;
+  participants?: string[] | string;
   summary?: string;
   decisions?: string[];
   actionItems?: Array<{
@@ -134,7 +200,7 @@ function formatParticipants(participants?: string[] | string): string {
   return String(participants);
 }
 
-function buildStructuredFallbackBrief(input: CatchUpBriefInput): string {
+export function buildStructuredFallbackBrief(input: CatchUpBriefInput): string {
   const decisionsList =
     input.decisions && input.decisions.length > 0
       ? input.decisions.map((d) => `• ${d}`).join("\n")
@@ -190,13 +256,34 @@ ${carriedList}
 }
 
 export async function generateCatchUpBriefWithOpenAI(
-  input: CatchUpBriefInput
+  input: CatchUpBriefInput,
+  requestId: string = generateRequestId("req-ai-brief")
 ): Promise<{ brief: string; aiGenerated: boolean }> {
   const openai = getOpenAIClient();
   const model = getOpenAIModel();
+  const startTime = Date.now();
+
+  logger.ai(
+    "ai_request_started",
+    {
+      action: "catch_up_brief",
+      model,
+      meetingTitle: input.meetingTitle,
+    },
+    requestId
+  );
 
   if (!openai) {
-    logger.info("Generating structured offline catch-up brief (OPENAI_API_KEY not configured)");
+    logger.ai(
+      "ai_request_completed",
+      {
+        action: "catch_up_brief",
+        source: "structured_fallback",
+        reason: "OPENAI_API_KEY_NOT_CONFIGURED",
+      },
+      requestId,
+      "info"
+    );
     return { brief: buildStructuredFallbackBrief(input), aiGenerated: false };
   }
 
@@ -241,10 +328,11 @@ ${
         })`
     )
     .join("\n") || "None"
-}`;
+}
+${input.userContext ? `Target Reader: ${input.userContext}` : ""}`;
 
   try {
-    const completion = await openai.chat.completions.create({
+    const response = await openai.chat.completions.create({
       model,
       messages: [
         { role: "system", content: systemPrompt },
@@ -253,15 +341,48 @@ ${
       temperature: 0.2,
     });
 
-    const text = completion.choices[0]?.message?.content?.trim();
-    if (!text) {
-      throw new Error("No text response received from OpenAI API.");
+    const latencyMs = Date.now() - startTime;
+    logger.ai(
+      "ai_response_latency",
+      { durationMs: latencyMs, model, action: "catch_up_brief" },
+      requestId,
+      "info"
+    );
+
+    const brief = response.choices[0]?.message?.content?.trim();
+    if (!brief) {
+      throw new Error("Empty response received from OpenAI API");
     }
 
-    return { brief: text, aiGenerated: true };
-  } catch (err: unknown) {
-    const error = err as Error;
-    logger.warn({ message: error.message }, "OpenAI catch-up brief API error, falling back to structured brief");
+    logger.ai(
+      "ai_request_completed",
+      {
+        action: "catch_up_brief",
+        durationMs: latencyMs,
+        aiGenerated: true,
+        status: "success",
+      },
+      requestId,
+      "info"
+    );
+
+    return { brief, aiGenerated: true };
+  } catch (error: unknown) {
+    const err = error as Error;
+    const latencyMs = Date.now() - startTime;
+
+    logger.ai(
+      "ai_request_failed",
+      {
+        action: "catch_up_brief",
+        message: err.message,
+        durationMs: latencyMs,
+        fallbackEngaged: true,
+      },
+      requestId,
+      "warn"
+    );
+
     return { brief: buildStructuredFallbackBrief(input), aiGenerated: false };
   }
 }

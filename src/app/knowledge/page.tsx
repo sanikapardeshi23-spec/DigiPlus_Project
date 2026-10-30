@@ -19,6 +19,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { useWorkspace } from "@/lib/store/workspace-context";
 import { formatDate } from "@/lib/utils";
 import { KnowledgeDocument } from "@/types";
+import { validateKnowledgeForm } from "@/lib/validation";
 
 export default function KnowledgePage() {
   const { knowledgeDocs, addKnowledgeDoc, deleteKnowledgeDoc, settings } = useWorkspace();
@@ -50,12 +51,14 @@ export default function KnowledgePage() {
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) {
-      setFormError("Title is required");
-      return;
-    }
-    if (!content.trim()) {
-      setFormError("Content is required");
+    const validation = validateKnowledgeForm({
+      title: title.trim(),
+      content: content.trim(),
+      category: category.trim(),
+    });
+
+    if (!validation.isValid) {
+      setFormError(validation.error || "Please enter valid document details");
       return;
     }
 

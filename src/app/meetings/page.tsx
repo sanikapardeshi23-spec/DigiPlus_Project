@@ -35,6 +35,8 @@ import {
   TaskStatus,
   Priority,
 } from "@/types";
+import { validateMeetingForm } from "@/lib/validation";
+import { logger } from "@/lib/logger";
 
 interface EditableActionItem {
   title: string;
@@ -119,12 +121,14 @@ export default function MeetingsPage() {
 
   // 1. Generate AI Recap using real OpenAI API
   const handleGenerateAiRecap = async () => {
-    if (!formTitle.trim()) {
-      setAiError("Please enter a meeting title before generating AI recap.");
-      return;
-    }
-    if (!formRawNotes.trim()) {
-      setAiError("Please provide raw meeting notes for OpenAI to analyze.");
+    const validation = validateMeetingForm({
+      title: formTitle.trim(),
+      notes: formRawNotes.trim(),
+      date: formDate,
+    });
+
+    if (!validation.isValid) {
+      setAiError(validation.error || "Please enter valid meeting details.");
       return;
     }
 
@@ -228,8 +232,14 @@ export default function MeetingsPage() {
   // 4. Save to Database (Confirmation step)
   const handleSaveMeeting = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formTitle.trim()) {
-      setSaveError("Meeting title is required");
+    const validation = validateMeetingForm({
+      title: formTitle.trim(),
+      notes: formRawNotes.trim() || undefined,
+      date: formDate,
+    });
+
+    if (!validation.isValid) {
+      setSaveError(validation.error || "Meeting title is required");
       return;
     }
 
@@ -282,6 +292,11 @@ export default function MeetingsPage() {
   const handleSaveNotes = () => {
     if (!selectedMeeting) return;
     setIsSavingNotes(true);
+    logger.meeting("transcript_saved", {
+      meetingId: selectedMeeting.id,
+      title: selectedMeeting.title,
+      notesLength: currentNotes.length,
+    });
     updateMeeting(selectedMeeting.id, { notes: currentNotes, rawNotes: currentNotes });
     setSelectedMeeting((prev) => (prev ? { ...prev, notes: currentNotes, rawNotes: currentNotes } : null));
     setTimeout(() => setIsSavingNotes(false), 300);
